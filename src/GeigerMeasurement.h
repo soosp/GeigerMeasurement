@@ -518,6 +518,7 @@ public:
         float sensitivity = _sensitivity;
         float deadTimeMaxFactor = _deadTimeMaxFactor;
         float deadTimeWarnRatio = _deadTimeWarnRatio;
+        uint32_t lastPulseMs = _lastPulseMs;
         uint32_t totalPulses = _totalPulses;
         uint32_t buf[GeigerConfig::PULSE_BUFFER_SIZE];
         for (uint32_t i = 0; i < GeigerConfig::PULSE_BUFFER_SIZE; i++)
@@ -536,7 +537,7 @@ public:
             // Adaptive mode, not enough data yet
             r.cpmEmaFast = (emaFast >= 0) ? emaFast : 0.0f;
             r.cpmEmaSlow = (emaSlow >= 0) ? emaSlow : 0.0f;
-            r.tubeAlive  = _tubeAliveCheck(count);
+            r.tubeAlive  = _tubeAliveCheck(lastPulseMs);
             return r;
         }
 
@@ -547,7 +548,7 @@ public:
             r.cpmEmaFast     = (emaFast >= 0) ? emaFast : 0.0f;
             r.cpmEmaSlow     = (emaSlow >= 0) ? emaSlow : 0.0f;
             r.confidenceHalf = 269.0f;  // maximum uncertainty (N≤1)
-            r.tubeAlive      = _tubeAliveCheck(count);
+            r.tubeAlive      = _tubeAliveCheck(lastPulseMs);
             r.valid          = true;
             return r;
         }
@@ -570,7 +571,7 @@ public:
                 r.confidenceHalf = 269.0f;
                 r.windowSec      = windowDurationUs * 1e-6f;
                 r.timestampMs    = millis();
-                r.tubeAlive      = _tubeAliveCheck(count);
+                r.tubeAlive      = _tubeAliveCheck(lastPulseMs);
                 r.valid          = true;
                 return r;
             }
@@ -618,7 +619,7 @@ public:
 
         // --- Tube alive check ---
         // Delegated to _tubeAliveCheck() for overflow-safe millis() arithmetic.
-        bool tubeAlive = _tubeAliveCheck(count);
+        bool tubeAlive = _tubeAliveCheck(lastPulseMs);
 
         // --- Assemble result ---
         r.cpm                   = cpm;
@@ -760,7 +761,7 @@ public:
         if (s <= 0.0f) return;
         GEIGER_ENTER_CRITICAL();
         _sensitivity = s;
-        _fieldFactor = s / _radlabSensitivity;
+        _fieldFactor = isnan(_radlabSensitivity) ? 1.0f : s / _radlabSensitivity;
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -1126,11 +1127,12 @@ public:
      */
     void setFieldFactor(float factor) {
         if (factor <= 0.0f) return;
-        if (isnan(_radlabSensitivity)) return; // TUBE_CUSTOM: use setSensitivity()
-        float newSens = _radlabSensitivity * factor;
         GEIGER_ENTER_CRITICAL();
-        _fieldFactor = factor;
-        _sensitivity = newSens;
+        if (!isnan(_radlabSensitivity)) { // TUBE_CUSTOM: use setSensitivity()
+            float newSens = _radlabSensitivity * factor;
+            _fieldFactor = factor;
+            _sensitivity = newSens;
+        }
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -1231,27 +1233,33 @@ private:
      */
     float _windowDurationUs(uint32_t head, uint32_t count,
                             const uint32_t* buf, uint32_t now) const {
-        switch (_mode) {
+        GEIGER_ENTER_CRITICAL();
+        AveragingMode mode = _mode;
+        float adaptivePulses    = _adaptivePulses;
+        float adaptiveMaxWindow = _adaptiveMaxWindow;
+        float adaptiveMinWindow = _adaptiveMinWindow;
+        GEIGER_EXIT_CRITICAL();
+        switch (mode) {
             case AveragingMode::FIXED_10S: return 10e6f;
             case AveragingMode::FIXED_30S: return 30e6f;
             case AveragingMode::FIXED_60S: return 60e6f;
 
             case AveragingMode::ADAPTIVE_FAST: {
-                uint32_t n      = min((uint32_t)_adaptivePulses, count);
+                uint32_t n      = min((uint32_t)adaptivePulses, count);
                 uint32_t oldest = buf[(head - n) & GeigerConfig::PULSE_BUFFER_MASK];
                 float span      = (float)(now - oldest);
-                return min(span, _adaptiveMaxWindow * 1e6f);
+                return min(span, adaptiveMaxWindow * 1e6f);
             }
 
             case AveragingMode::ADAPTIVE_PRECISION: {
-                uint32_t n      = min((uint32_t)_adaptivePulses, count);
+                uint32_t n      = min((uint32_t)adaptivePulses, count);
                 uint32_t oldest = buf[(head - n) & GeigerConfig::PULSE_BUFFER_MASK];
                 float span      = (float)(now - oldest);
                 // Not yet enough pulses: use all available time
-                if (count < (uint32_t)_adaptivePulses)
+                if (count < (uint32_t)adaptivePulses)
                     return (float)(now - buf[(head - count) & GeigerConfig::PULSE_BUFFER_MASK]);
                 // Enough pulses: enforce minimum window
-                return max(span, _adaptiveMinWindow * 1e6f);
+                return max(span, adaptiveMinWindow * 1e6f);
             }
         }
         return 60e6f;  // fallback (should never be reached)
@@ -1314,9 +1322,13 @@ private:
      * @return         Compensated rate in CPM
      */
     float _applyDeadTime(float rawCPS, float rawCPM, float& outFactor) const {
-        if (_deadTime_s <= 0.0f) { outFactor = 1.0f; return rawCPM; }
-        float factor = 1.0f / (1.0f - rawCPS * _deadTime_s);
-        factor    = min(factor, _deadTimeMaxFactor);
+        GEIGER_ENTER_CRITICAL();
+        float deadTime_s = _deadTime_s;
+        float deadTimeMaxFactor = _deadTimeMaxFactor;
+        GEIGER_EXIT_CRITICAL();
+        if (deadTime_s <= 0.0f) { outFactor = 1.0f; return rawCPM; }
+        float factor = 1.0f / (1.0f - rawCPS * deadTime_s);
+        factor    = min(factor, deadTimeMaxFactor);
         outFactor = factor;
         return rawCPM * factor;
     }
@@ -1341,9 +1353,11 @@ private:
      * @return            Integer compensated pulse count
      */
     uint32_t _applyDeadTimeCarry(uint32_t pulseCount, float factor) {
+        GEIGER_ENTER_CRITICAL();
         _dtCarry += factor * (float)pulseCount;
         uint32_t compensated = (uint32_t)_dtCarry;
         _dtCarry -= (float)compensated;
+        GEIGER_EXIT_CRITICAL();
         return compensated;
     }
 
@@ -1354,27 +1368,22 @@ private:
     /**
      * @brief Check whether the tube is alive based on elapsed time since the last pulse.
      *
-     * Uses _lastPulseMs (set by onPulse()) for all cases, including startup.
+     * Uses lastPulseMs (set by onPulse()) for all cases, including startup.
      * This approach is overflow-safe for millis() because unsigned subtraction
      * wraps correctly at the 32-bit boundary (~49-day period):
      *
-     *   elapsed = millis() - _lastPulseMs   always gives the correct interval
+     *   elapsed = millis() - lastPulseMs   always gives the correct interval
      *
-     * At startup (_lastPulseMs == 0, no pulse yet), elapsed equals millis()
+     * At startup (lastPulseMs == 0, no pulse yet), elapsed equals millis()
      * itself — which is the time since boot, a reasonable proxy for "time since
      * the tube was powered on and expected to start counting."
      *
-     * This replaces the previous millis() < timeout check, which was not
-     * overflow-safe and only covered the startup case.
-     *
-     * @param count  Current pulse count (from ISR snapshot) — used only to
-     *               distinguish the startup case for documentation clarity.
-     *               The actual check always uses _lastPulseMs.
+     * @param lastPulseMs Timestamp of last detected pulse in ms.
      */
-    bool _tubeAliveCheck(uint32_t /*count*/) const {
+    bool _tubeAliveCheck(uint32_t lastPulseMs) const {
         uint32_t timeoutMs = _tubeTimeoutMsCalc();
         // Overflow-safe: unsigned subtraction wraps correctly at 2^32
-        return (millis() - _lastPulseMs) < timeoutMs;
+        return (millis() - lastPulseMs) < timeoutMs;
     }
 
     // -------------------------------------------------------------------------
@@ -1399,13 +1408,17 @@ private:
      *   SI-3BG  (3.3 CPM/(µSv/h)):  ~3637 s ≈ 60 min
      */
     uint32_t _tubeTimeoutMsCalc() const {
-        if (_tubeTimeoutMs > 0) return _tubeTimeoutMs;
+        GEIGER_ENTER_CRITICAL();
+        uint32_t tubeTimeoutMs = _tubeTimeoutMs;
+        float sensitivity = _sensitivity;
+        GEIGER_EXIT_CRITICAL();
+        if (tubeTimeoutMs > 0) return tubeTimeoutMs;
         // Guard against division by zero when _sensitivity == 0 (TUBE_CUSTOM
         // before setSensitivity() has been called). Fall back to 2 minutes —
         // long enough to avoid a spurious tubeAlive=false at startup, short
         // enough to still detect a genuinely dead tube.
-        if (_sensitivity <= 0.0f) return 120000UL;
-        return (uint32_t)((60.0f * 10.0f / 0.05f) / _sensitivity * 1000.0f) + 1000UL;
+        if (sensitivity <= 0.0f) return 120000UL;
+        return (uint32_t)((60.0f * 10.0f / 0.05f) / sensitivity * 1000.0f) + 1000UL;
     }
 
     // -------------------------------------------------------------------------
@@ -1514,6 +1527,7 @@ private:
      *   sustained, growing divergence over many minutes indicates a real change.
      */
     void _updateEMA(float cpm) {
+        GEIGER_ENTER_CRITICAL();
         if (_emaFast < 0.0f) {
             // First valid measurement — initialise both EMAs directly
             _emaFast = _emaSlow = cpm;
@@ -1521,5 +1535,6 @@ private:
             _emaFast += _emaAlphaFast * (cpm - _emaFast);
             _emaSlow += _emaAlphaSlow * (cpm - _emaSlow);
         }
+        GEIGER_EXIT_CRITICAL();
     }
 };
