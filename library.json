@@ -1,0 +1,30 @@
+{
+  "name": "GeigerMeasurement",
+  "version": "1.0.0",
+  "description": "Geiger-Müller counter measurement library for ESP32 and ESP8266. Implements the core measurement algorithms of the RadPro project (Gissio), adapted for the Arduino platform. Features five averaging modes, dead-time compensation, 95% confidence interval, dual EMA, in-situ dead-time measurement, live calibration, and fault detection.",
+  "keywords": "geiger, radiation, dosimeter, measurement, ESP32, ESP8266, GM tube",
+  "authors": [
+    {
+      "name": "Péter Soós",
+      "url": "https://github.com/soosp",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soosp/GeigerMeasurement"
+  },
+  "homepage": "https://github.com/soosp/GeigerMeasurement",
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"],
+  "headers": ["GeigerMeasurement.h", "GeigerTubes.h"],
+  "dependencies": {
+    "RunningStats": {
+      "owner": "soosp",
+      "name": "RunningStats",
+      "version": "^1.0.0",
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# VS Code
+.vscode/
+
+# Python (PlatformIO uses it)
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
