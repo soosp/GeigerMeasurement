@@ -815,7 +815,10 @@ public:
      *
      * @param us  Dead time in microseconds (0 = disabled)
      */
-    void setDeadTime(float us)         { _deadTime_s = us * 1e-6f; }
+    void setDeadTime(float us) {
+       if (us < 0.0f || isnan(us)) return;
+        _deadTime_s = us * 1e-6f;
+    }
 
     /// Maximum dead-time compensation factor (default: 10×, matching RadPro).
     /// At this cap the tube is saturated — the reading is unreliable.
@@ -1326,7 +1329,10 @@ private:
         float deadTime_s = _deadTime_s;
         float deadTimeMaxFactor = _deadTimeMaxFactor;
         GEIGER_EXIT_CRITICAL();
-        if (deadTime_s <= 0.0f) { outFactor = 1.0f; return rawCPM; }
+        if (deadTime_s <= 0.0f || isnan(deadTime_s)) {
+            outFactor = 1.0f;
+            return rawCPM;
+        }
         float factor = 1.0f / (1.0f - rawCPS * deadTime_s);
         factor    = min(factor, deadTimeMaxFactor);
         outFactor = factor;
@@ -1527,6 +1533,7 @@ private:
      *   sustained, growing divergence over many minutes indicates a real change.
      */
     void _updateEMA(float cpm) {
+        if (isnan(cpm)) return;
         GEIGER_ENTER_CRITICAL();
         if (_emaFast < 0.0f) {
             // First valid measurement — initialise both EMAs directly
