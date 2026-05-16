@@ -649,19 +649,24 @@ inside `onPulse()`.
 
 Yes — but the probability is negligible at background levels.
 
-The critical section in `getReading()` copies the entire 256-entry timestamp
-buffer (1 KB) while interrupts are blocked. On ESP8266/ESP32 this takes
-roughly **2–4 µs**. At background radiation (~20 CPM), pulses arrive on average
-every **3 seconds**. The probability of a pulse coinciding with the critical
-section is:
+`getReading()` acquires several short critical sections in sequence: the main 
+buffer snapshot (256 × `uint32_t`), plus smaller snapshots in
+`_windowDurationUs()`, `_applyDeadTime()`, `_applyDeadTimeCarry()`,
+`_tubeAliveCheck()`, and `_updateEMA()`. Each individual section is brief
+(~0.2–1.3 µs), and their combined ISR-blocking time per `getReading()` call is
+approximately **2 µs**.
+
+At background radiation levels, pulses arrive on average every **3 seconds**
+for an SBM-20. The probability of a pulse coinciding with any critical section
+is:
 
 ```txt
-4 µs / 3 000 000 µs ≈ 0.00013%
+2 µs / 3 000 000 µs ≈ 0.00007%
 ```
 
 At background levels this corresponds to roughly one missed pulse every
-**95 years** of continuous operation. Even at 10 000 CPM (extreme radiation),
-the overlap probability is only ~4% — comparable in magnitude to the tube's
+**55 years** of continuous operation. Even at 10 000 CPM (extreme radiation),
+the overlap probability is only ~3% — comparable in magnitude to the tube's
 own dead-time loss, which the dead-time compensation already corrects for.
 
 A pulse lost during the critical section is simply absent from the ring buffer,
