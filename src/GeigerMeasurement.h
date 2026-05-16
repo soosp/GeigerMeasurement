@@ -816,7 +816,7 @@ public:
      * @param us  Dead time in microseconds (0 = disabled)
      */
     void setDeadTime(float us) {
-       if (us < 0.0f || isnan(us)) return;
+        if (us < 0.0f || isnan(us)) return;
         _deadTime_s = us * 1e-6f;
     }
 
