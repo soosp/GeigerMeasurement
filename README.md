@@ -263,7 +263,7 @@ Or in `platformio.ini`:
 build_flags = -DGEIGER_PULSE_BUFFER_SIZE=512
 ```
 
-The buffer holds timestamps of recent pulses. Larger buffers improve dead-time measurement accuracy and allow longer adaptive windows, at the cost of RAM.
+The buffer holds timestamps of recent pulses. Larger buffers allow longer adaptive windows, at the cost of RAM.
 
 ##### Default constants (`GeigerConfig` namespace)
 
@@ -430,7 +430,7 @@ void setSensitivity(float cpmPerUsvH);  // direct override
 
 `setTube()`, `setSource()`, and `setTubeAndSource()` recompute sensitivity automatically from `GeigerTubes.h` data and reset `fieldFactor` to 1.0. No `reset()` required.
 
-`setSensitivity()` sets the sensitivity directly — also updates `_fieldFactor` for consistency. For `TUBE_CUSTOM`, this is the primary calibration method.
+`setSensitivity()` sets the sensitivity directly — also updates `_fieldFactor` for consistency. For `TUBE_CUSTOM` only this calibration method can be used.
 
 ---
 
@@ -538,7 +538,7 @@ Less sensitive tubes need a longer timeout because background pulses are rarer. 
 
 #### Dead-time measurement
 
-Two complementary methods are available. Both return an **upper bound** on τ — the true dead time may be shorter, but no interval shorter than τ can be observed.
+Two complementary methods are available. Both return an **upper bound** on τ — the true dead time may be shorter, but no interval shorter than τ was observed.
 
 ##### `getMeasuredDeadTime()`
 
@@ -674,13 +674,13 @@ meaningful practical gain.
 
 ## Empirical Field Factors
 
-The Rad Lab simulation values are theoretical (Cs-137 reference geometry). In practice, real GM tubes measuring background radiation show systematic deviations — typically 1.0–1.6× — due to wall material, energy response, and geometry differences vs. the simulation model.
+The Rad Lab simulation values are theoretical (Cs-137 reference geometry). In practice, the tested real GM tubes measuring background radiation show deviations — typically 1.0–1.6× — due to wall material, energy response, and geometry differences vs. the simulation model.
 
 Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine the value for your specific tube and location.
 
 ### Measured values
 
-![Measurement setup — four NodeMCU/CAJOE boards with different GM tubes running in parallel, reference: BOSEAN FS-5000](assets/measurement_setup.jpg)
+![Measurement setup: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, running in parallel — BOSEAN FS-5000 as reference](assets/measurement_setup.jpg)
 
 **Conditions:**
 

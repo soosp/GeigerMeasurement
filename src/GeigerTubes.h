@@ -193,8 +193,8 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
  * @brief Source correction factors, stored as uint8_t on a logarithmic scale.
  *
  * WHY ENCODE AS uint8_t?
- *   Storing 6×14 = 84 floats would use 336 bytes of flash. By encoding on a
- *   logarithmic scale we use only 84 bytes, with negligible precision loss.
+ *   Storing 7×14 = 98 floats would use 392 bytes of flash. By encoding on a
+ *   logarithmic scale we use only 98 bytes, with negligible precision loss.
  *
  * ENCODING FORMULA (from RadPro tube.c):
  *   factor = 0.125 × 2^(code / 36)
@@ -209,7 +209,7 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
  *   than to Cs-137. The SI-3BG's small size and geometry make it
  *   exceptionally insensitive to soft 60 kV X-rays.
  *
- * Row order:    J305, M4011, HH614, SBM-20, SI-3BG, LND7317
+ * Row order:    J305, M4011, HH614, SBM-20, SI-3BG, LND7317, J305_90
  * Column order: CS137, CO60, TC99M, I131, LU177, AM241, RADIUM,
  *               URANIUM_ORE, URANIUM_GLASS, DEPLETED_URANIUM,
  *               THORIUM_ORE, XRAYS, K40, BACKGROUND
