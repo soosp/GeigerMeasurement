@@ -204,9 +204,10 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
  *   code = 108  →  factor = 0.125 × 2^3.000 = 1.000  (Cs-137 baseline)
  *   code = 255  →  factor = 0.125 × 2^7.083 ≈ 17.1   (maximum)
  *
- * SPECIAL CASE — SBM-20 + X-rays (code = 0):
- *   The SBM-20's thick stainless steel wall absorbs most 60 kV X-ray photons.
- *   Code 0 gives factor = 0.125, meaning ~8× less sensitive than to Cs-137.
+ * SPECIAL CASE — SI-3BG + X-rays (code = 0):
+ *   Code 0 maps to the minimum factor (0.125), meaning ~8× less sensitive
+ *   than to Cs-137. The SI-3BG's small size and geometry make it
+ *   exceptionally insensitive to soft 60 kV X-rays.
  *
  * Row order:    J305, M4011, HH614, SBM-20, SI-3BG, LND7317
  * Column order: CS137, CO60, TC99M, I131, LU177, AM241, RADIUM,
@@ -217,9 +218,9 @@ static const uint8_t _tubeSourceFactors[TUBE_COUNT][SOURCE_COUNT] = {
     {108, 113, 204, 107, 172, 236, 111, 117, 124, 123, 113, 196, 110, 123}, // J305
     {108, 113, 204, 107, 173, 236, 111, 118, 124, 123, 113, 196, 110, 123}, // M4011/J321
     {108, 124, 156,  93, 113, 185, 106, 106, 106, 112,  62, 153, 125, 112}, // HH614
-    {108,  95, 169, 103, 126, 207, 100, 105, 110, 110, 100, 198,  92, 108}, // SBM-20  ← corrected from RadPro
-    {108, 107, 154, 104, 127, 167, 107, 111, 114, 113, 108, 161, 107, 115}, // SI-3BG
-    {108, 125, 153,  93, 113,  77, 107, 106, 108, 112,  89,   0, 128, 109}, // LND7317
+    {108,  95, 169, 103, 126, 207, 100, 105, 110, 110, 100, 198,  92, 108}, // SBM-20
+    {108, 125, 153,  93, 113,  77, 107, 106, 108, 112,  89,   0, 128, 109}, // SI-3BG
+    {108, 107, 154, 104, 127, 167, 107, 111, 114, 113, 108, 161, 107, 115}, // LND7317
     {108, 113, 204, 107, 172, 236, 111, 117, 124, 123, 113, 196, 110, 123}, // J305_90
     //  J305_90 IDENTICAL to J305 107mm — wall material and geometry are the same;
     //  only active length differs. UNVERIFIED: assumes energy response is
