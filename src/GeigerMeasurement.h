@@ -709,8 +709,8 @@ public:
      *
      * Use this when the sensitivity is known from direct measurement or a
      * manufacturer's datasheet, rather than derived from Rad Lab simulation.
-     * This is the primary calibration method for TUBE_CUSTOM, and is also
-     * useful when working with tubes not covered by the built-in presets.
+     * This is the calibration method for TUBE_CUSTOM, and is also useful when
+     * working with tubes not covered by the built-in presets.
      *
      * @param s  Sensitivity in CPM / (µSv/h) — must be > 0
      */
@@ -1021,8 +1021,8 @@ public:
     /**
      * @brief Set the field calibration factor directly.
      *
-     * The field factor corrects for the systematic difference between the
-     * Rad Lab simulation sensitivity and the real-world sensitivity of a
+     * The field factor corrects for the difference between the Rad Lab
+     * simulation sensitivity and the measured real-world sensitivity of a
      * specific tube in a specific radiation field (typically background).
      *
      * The effective sensitivity becomes:

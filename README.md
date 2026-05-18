@@ -567,7 +567,7 @@ if (!measured && geiger.lifetimePulses() >= 500) {
 
 #### Calibration and field factor
 
-The field factor corrects for the systematic difference between Rad Lab simulation values and real-world tube sensitivity. It is **tube- and source-specific**: automatically reset to 1.0 by `setTube()`, `setSource()`, and `setTubeAndSource()`.
+The field factor corrects for the difference between Rad Lab simulation values and measured real-world tube sensitivity. It is **tube- and source-specific**: automatically reset to 1.0 by `setTube()`, `setSource()`, and `setTubeAndSource()`.
 
 ```cpp
 bool  calibrate(float knownUsvH, float maxConfidencePct = 20.0f);
