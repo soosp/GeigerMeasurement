@@ -704,6 +704,7 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |`GeigerMonitor.ino`|Full-featured monitor with RunningStats|
 |`GeigerBackground.ino`|Background monitoring with adaptive→fixed mode transition|
 |`GeigerCompare.ino`|Parallel tube sensitivity comparison — CSV output, lifetime average, accumulated dose|
+|`GeigerPulseIndicator.ino`|Demonstrates per-pulse LED flash and passive buzzer click indicators|
 
 ---
 
