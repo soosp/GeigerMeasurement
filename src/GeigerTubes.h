@@ -61,8 +61,7 @@
  * USAGE EXAMPLE
  * -----------------------------------------------------------------------------
  * @code
- *   #include "GeigerTubes.h"
- *   #include "GeigerMeasurement.h"
+ *   #include <GeigerMeasurement.h>  // It includes GeigerTubes.h
  *
  *   // Create a measurement instance: SBM-20 tube, background radiation
  *   GeigerMeasurement geiger(TUBE_SBM20, SOURCE_BACKGROUND);
@@ -70,9 +69,9 @@
  *   // Switch to Cs-137 source at runtime (e.g. when measuring a known source)
  *   geiger.setSource(SOURCE_CS137);
  *
- *   // Query the computed sensitivity directly (for diagnostics)
- *   float s = tubeSourceSensitivity(TUBE_SBM20, SOURCE_BACKGROUND);
- *   // s ≈ 95.7 CPM / (µSv/h)
+ *   // Query the sensitivity directly (for diagnostics)
+ *   float s = tubeSourceSensitivity(TUBE_SBM20, SOURCE_CS137);
+ *   // s ≈ 106.105 CPM / (µSv/h)
  * @endcode
  */
 
