@@ -24,6 +24,7 @@
  */
 
 #include "GeigerMeasurement.h"
+#include <ExponentialAverage.h>
 #include <RollingStats.h>
 
 // ─── Pin configuration ────────────────────────────────────────────────────
@@ -43,6 +44,10 @@ GeigerMeasurement geiger(
 // 128 bins × 60s = 7680s ≈ 2 hours maximum.
 // Queryable windows: 60, 120, 180, ... 7680 seconds.
 RollingStats<128, 60> stats;
+
+// ─── EMA ─────────────────────────────────────────────────────────────────
+ExponentialAverage emaFast(0.10f);  // ~10 samples lag
+ExponentialAverage emaSlow(0.01f);  // ~100 samples lag
 
 // ─── ISR ─────────────────────────────────────────────────────────────────
 void IRAM_ATTR geigerISR() {
@@ -78,6 +83,7 @@ void loop() {
         lastSecondMs = millis();
 
         GeigerReading r = geiger.getReading();
+        if (r.valid) { emaFast.addSample(r.cpm); emaSlow.addSample(r.cpm); }
 
         // ── Fault detection ───────────────────────────────────────────────
         // tubeAlive: report only on state *change* to avoid flooding the log.
@@ -130,8 +136,8 @@ void loop() {
                 r.cpm,
                 r.uSvH,
                 r.confidenceHalf,
-                r.cpmEmaFast,
-                r.cpmEmaSlow,
+                emaFast.value(),
+                emaSlow.value(),
                 dt,
                 inAdaptiveMode ? "ADAPTIVE" : "FIXED_60S"
             );

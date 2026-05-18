@@ -17,6 +17,7 @@
  */
 
 #include "GeigerMeasurement.h"
+#include <ExponentialAverage.h>
 #include <RollingStats.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -36,6 +37,10 @@ GeigerMeasurement geiger(
 // 128 bins × 60 s = 7680 s ≈ 2 hours maximum history.
 // Queryable windows: any multiple of 60 s up to 7680 s.
 RollingStats<128, 60> stats;
+
+// ─── EMA ─────────────────────────────────────────────────────────────────
+ExponentialAverage emaFast(0.10f);  // ~10 samples lag
+ExponentialAverage emaSlow(0.01f);  // ~100 samples lag
 
 // ─── ISR ──────────────────────────────────────────────────────────────────────
 void IRAM_ATTR geigerISR() {
@@ -87,7 +92,7 @@ void loop() {
             "EMA-fast: %5.1f | EMA-slow: %5.1f\n",
             millis() / 1000.0f,
             r.cpm, r.uSvH, r.confidenceHalf,
-            r.cpmEmaFast, r.cpmEmaSlow
+            emaFast.value(), emaSlow.value()
         );
 
         // Feed RollingStats — use timestampMs from the reading, not millis(),
@@ -96,6 +101,9 @@ void loop() {
         // which is more accurate than r.cpm for long-term rolling averages.
         float compensatedCpm = r.compensatedPulseCount * 60.0f / r.windowSec;
         stats.addSample(compensatedCpm, r.timestampMs);
+
+        emaFast.addSample(r.cpm);
+        emaSlow.addSample(r.cpm);
 
         // Apply the lifetime dead-time estimate whenever it improves.
         // getMeasuredDeadTime() accumulates the minimum inter-pulse interval

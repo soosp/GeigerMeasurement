@@ -8,12 +8,16 @@
  */
 
 #include "GeigerMeasurement.h"
+#include <ExponentialAverage.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 constexpr int   GEIGER_PIN   = D7;      // NodeMCU D7 = GPIO13
 constexpr float DEAD_TIME_US = 190.0f;  // µs — measure with getMeasuredDeadTime(), or leave 0
 
-// SBM-20 tube, background radiation, 60-second sliding window
+// ─── EMA ─────────────────────────────────────────────────────────────────
+ExponentialAverage emaFast(0.10f);  // ~10 samples lag
+ExponentialAverage emaSlow(0.01f);  // ~100 samples lag
+
 GeigerMeasurement geiger(
     TUBE_SBM20,
     SOURCE_BACKGROUND,
@@ -50,6 +54,9 @@ void loop() {
     GeigerReading r = geiger.getReading();
 
     if (!r.valid) {
+        emaFast.addSample(r.cpm);
+        emaSlow.addSample(r.cpm);
+
         Serial.printf("[%6.1fs] Waiting for pulses...\n", millis() / 1000.0f);
         return;
     }
@@ -60,7 +67,7 @@ void loop() {
         "±%.0f%% | window: %.1fs | N: %u\n",
         millis() / 1000.0f,
         r.cpm, r.uSvH,
-        r.cpmEmaFast, r.cpmEmaSlow,
+        emaFast.value(), emaSlow.value(),
         r.confidenceHalf,
         r.windowSec,
         r.pulseCount

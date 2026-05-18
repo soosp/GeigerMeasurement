@@ -18,7 +18,6 @@ The library is split into two independent components that can be used together:
 - Five averaging modes: Adaptive Fast, Adaptive Precision, 10s, 30s, 60s sliding window
 - Dead-time compensation (non-paralyzable / Type I model) with integer carry for long-term accuracy
 - 95% confidence interval (Poisson statistics with first-order correction, RadPro formula)
-- Dual EMA (Exponential Moving Average) for fast response and stable background estimation
 - In-situ dead-time measurement from pulse buffer minimum interval
 - Live calibration against a known dose-rate source
 - Fault detection: tube alive, dead-time saturation, pulse counter overflow
@@ -276,8 +275,6 @@ All tunable parameters have named compile-time defaults in the `GeigerConfig` na
 |`DEFAULT_ADAPTIVE_MIN_WINDOW`|`5.0`|`ADAPTIVE_PRECISION` window floor [s]|
 |`DEFAULT_DEAD_TIME_MAX_FACTOR`|`10.0`|Dead-time compensation cap|
 |`DEFAULT_DEAD_TIME_WARN_RATIO`|`0.8`|Saturation warning threshold (fraction of cap)|
-|`DEFAULT_EMA_ALPHA_FAST`|`0.10`|Fast EMA smoothing factor|
-|`DEFAULT_EMA_ALPHA_SLOW`|`0.01`|Slow EMA smoothing factor|
 |`DEFAULT_CALIBRATE_MAX_CONFIDENCE`|`20.0`|Default max CI for `calibrate()` [%]|
 
 ---
@@ -316,8 +313,6 @@ Returned by `getReading()`. Always check `valid` before using numerical fields.
 struct GeigerReading {
     float    cpm;                   // dead-time compensated rate [CPM]
     float    uSvH;                  // dose rate [µSv/h]
-    float    cpmEmaFast;            // fast EMA of CPM (~10 readings lag)
-    float    cpmEmaSlow;            // slow EMA of CPM (~100 readings lag)
     float    confidenceHalf;        // 95% CI half-width [%]
     uint32_t pulseCount;            // raw pulses in averaging window
     uint32_t compensatedPulseCount; // dead-time compensated pulse count (integer carry)
@@ -333,7 +328,6 @@ struct GeigerReading {
 **Field notes:**
 
 - `confidenceHalf`: 95% Poisson CI using the RadPro formula. Value of `269.0` means N≤1 (maximum uncertainty). Smaller is better.
-- `cpmEmaSlow`: long-term background level estimate (~100 readings lag). A short-lived difference between `cpmEmaFast` and `cpmEmaSlow` is normal due to Poisson fluctuations — only a sustained, growing divergence over many minutes indicates a real change in radiation level.
 - `compensatedPulseCount`: more accurate than `cpm * windowSec / 60` for long-term dose integration because fractional remainders are carried forward across calls.
 - `timestampMs`: pass this to `RollingStats::addSample()` — do not use `millis()` directly, which has processing skew.
 - `uSvH`: NaN if `TUBE_CUSTOM` and `setSensitivity()` has not been called.
@@ -415,7 +409,7 @@ Both are read under a critical section for consistency on ESP32.
 void reset();
 ```
 
-Clears the pulse buffer, `totalPulses`, and EMA state. `lifetimePulses` is preserved.
+Clears the pulse buffer and `totalPulses`. `lifetimePulses` is preserved.
 
 ---
 
@@ -440,7 +434,7 @@ void setSensitivity(float cpmPerUsvH);  // direct override
 void setMode(AveragingMode mode);
 ```
 
-Changes the averaging mode. Clears the pulse buffer and resets EMA. `totalPulses` and `lifetimePulses` are preserved.
+Changes the averaging mode. Clears the pulse buffer. `totalPulses` and `lifetimePulses` are preserved.
 
 ---
 
@@ -497,24 +491,6 @@ void  setAdaptiveMinWindow(float s);     // ADAPTIVE_PRECISION floor [s] (defaul
 float getAdaptivePulses()     const;     // current target pulse count
 float getAdaptiveMaxWindow()  const;     // current ADAPTIVE_FAST cap [s]
 float getAdaptiveMinWindow()  const;     // current ADAPTIVE_PRECISION floor [s]
-```
-
----
-
-#### EMA setters
-
-Changing alpha resets the corresponding EMA to avoid inconsistent history.
-
-```cpp
-void  setEmaAlphaFast(float alpha);    // default: 0.10  (~10 readings lag)
-void  setEmaAlphaSlow(float alpha);    // default: 0.01  (~100 readings lag)
-```
-
-Getting alpha values
-
-```cpp
-float getEmaAlphaFast() const;         // current fast EMA alpha
-float getEmaAlphaSlow() const;         // current slow EMA alpha
 ```
 
 ---
@@ -651,8 +627,8 @@ Yes — but the probability is negligible at background levels.
 
 `getReading()` acquires several short critical sections in sequence: the main 
 buffer snapshot (256 × `uint32_t`), plus smaller snapshots in
-`_windowDurationUs()`, `_applyDeadTime()`, `_applyDeadTimeCarry()`,
-`_tubeAliveCheck()`, and `_updateEMA()`. Each individual section is brief
+`_windowDurationUs()`, `_applyDeadTime()`, `_applyDeadTimeCarry()` and
+`_tubeAliveCheck()`. Each individual section is brief
 (~0.2–1.3 µs), and their combined ISR-blocking time per `getReading()` call is
 approximately **2 µs**.
 

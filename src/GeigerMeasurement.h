@@ -24,7 +24,6 @@
  *   - Five averaging modes: adaptive fast, adaptive precision, 10s, 30s, 60s
  *   - Dead-time compensation using the non-paralyzable (Type I) model
  *   - 95% confidence interval estimation (Poisson statistics, RadPro formula)
- *   - Dual EMA (Exponential Moving Average) for trend detection and background estimation
  *   - Tube/source sensitivity from GeigerTubes.h (RadPro Rad Lab data and own measurement)
  *   - In-situ dead-time measurement (upper bound estimation)
  *   - Live calibration against a known dose-rate source
@@ -70,7 +69,6 @@
  *     tool by the same author
  *
  * Extensions beyond RadPro:
- *   - Dual EMA layers for trend and background level estimation
  *   - Live calibration against a known dose-rate source
  *   - Counter saturation detection (uint32_t clamping)
  *   - Configurable PULSE_BUFFER_SIZE via preprocessor define
@@ -254,9 +252,6 @@ namespace GeigerConfig {
     constexpr float DEFAULT_DEAD_TIME_MAX_FACTOR = 10.0f;
     constexpr float DEFAULT_DEAD_TIME_WARN_RATIO =  0.8f;  // warn at 80% of the cap
 
-    // EMA smoothing factor defaults
-    constexpr float DEFAULT_EMA_ALPHA_FAST = 0.10f;  // ~10 readings lag
-    constexpr float DEFAULT_EMA_ALPHA_SLOW = 0.01f;  // ~100 readings lag
 
     // Default maximum confidence for calibrate() [%]
     constexpr float DEFAULT_CALIBRATE_MAX_CONFIDENCE = 20.0f;
@@ -276,9 +271,7 @@ namespace GeigerConfig {
 /**
  * @brief Complete measurement result returned by GeigerMeasurement::getReading().
  *
- * Always check the `valid` flag before using numerical fields. The EMA fields
- * (cpmEmaFast, cpmEmaSlow) are available even when valid == false, if the EMA
- * has been initialised in a previous call.
+ * Always check the `valid` flag before using numerical fields.
  *
  * Use timestampMs (not millis()) when passing data to RollingStats::addSample()
  * to avoid timing skew introduced by subsequent processing in the loop.
@@ -289,24 +282,6 @@ struct GeigerReading {
                         ///<   Compensation uses float multiplication — accurate for
                         ///<   instantaneous rate display.
     float    uSvH;      ///< Dose rate [µSv/h] = cpm / sensitivity
-
-    // --- Trend estimation (Exponential Moving Average) ---
-    float    cpmEmaFast;  ///< Fast EMA of CPM (alpha = 0.10, ~10 samples lag)
-                          ///<   Responds to changes within ~10 readings.
-    float    cpmEmaSlow;  ///< Slow EMA of CPM (alpha = 0.01, ~100 samples lag)
-                          ///<   Estimates the stable long-term background level.
-                          ///<
-                          ///<   NOTE ON INTERPRETATION:
-                          ///<   A difference between cpmEmaFast and cpmEmaSlow is
-                          ///<   *normal* at background levels due to Poisson statistics:
-                          ///<   individual CPM readings fluctuate by ±40-50%, and the
-                          ///<   fast EMA follows these fluctuations while the slow EMA
-                          ///<   smooths them out. A short-lived difference is not
-                          ///<   meaningful.
-                          ///<
-                          ///<   A *sustained and growing* gap — where cpmEmaFast stays
-                          ///<   consistently above or below cpmEmaSlow over many minutes
-                          ///<   — may indicate a real change in radiation level.
 
     // --- Statistical quality ---
     float    confidenceHalf; ///< 95% confidence interval as a percentage (±%)
@@ -394,8 +369,6 @@ public:
         , _adaptiveMinWindow(GeigerConfig::DEFAULT_ADAPTIVE_MIN_WINDOW)
         , _deadTimeMaxFactor(GeigerConfig::DEFAULT_DEAD_TIME_MAX_FACTOR)
         , _deadTimeWarnRatio(GeigerConfig::DEFAULT_DEAD_TIME_WARN_RATIO)
-        , _emaAlphaFast(GeigerConfig::DEFAULT_EMA_ALPHA_FAST)
-        , _emaAlphaSlow(GeigerConfig::DEFAULT_EMA_ALPHA_SLOW)
         // Timeout for the tube fault detection
         // 0 = use sensitivity-dependent timeout (RadPro: getLossOfCountTime)
         , _tubeTimeoutMs(0)
@@ -405,8 +378,6 @@ public:
         , _lifetimePulses(0)
         , _lastPulseMs(0)
         , _minIntervalUs(UINT32_MAX)
-        , _emaFast(-1.0f)   // sentinel: EMA not yet initialised
-        , _emaSlow(-1.0f)   // sentinel: EMA not yet initialised
         , _dtCarry(0.0f)
     {}
 
@@ -513,8 +484,6 @@ public:
         uint32_t count = _count;
         uint32_t now = micros();
         AveragingMode mode = _mode;
-        float emaFast = _emaFast;
-        float emaSlow = _emaSlow;
         float sensitivity = _sensitivity;
         float deadTimeMaxFactor = _deadTimeMaxFactor;
         float deadTimeWarnRatio = _deadTimeWarnRatio;
@@ -535,8 +504,6 @@ public:
 
         if (!fixedMode && count < GeigerConfig::MIN_PULSES_FOR_RATE) {
             // Adaptive mode, not enough data yet
-            r.cpmEmaFast = (emaFast >= 0) ? emaFast : 0.0f;
-            r.cpmEmaSlow = (emaSlow >= 0) ? emaSlow : 0.0f;
             r.tubeAlive  = _tubeAliveCheck(lastPulseMs);
             return r;
         }
@@ -545,8 +512,6 @@ public:
             // Fixed mode, no pulses at all yet — report zero rate as valid
             r.cpm            = 0.0f;
             r.uSvH           = 0.0f;
-            r.cpmEmaFast     = (emaFast >= 0) ? emaFast : 0.0f;
-            r.cpmEmaSlow     = (emaSlow >= 0) ? emaSlow : 0.0f;
             r.confidenceHalf = 269.0f;  // maximum uncertainty (N≤1)
             r.tubeAlive      = _tubeAliveCheck(lastPulseMs);
             r.valid          = true;
@@ -566,8 +531,6 @@ public:
                 // Fixed mode: report zero rate, still valid
                 r.cpm            = 0.0f;
                 r.uSvH           = 0.0f;
-                r.cpmEmaFast     = (emaFast >= 0) ? emaFast : 0.0f;
-                r.cpmEmaSlow     = (emaSlow >= 0) ? emaSlow : 0.0f;
                 r.confidenceHalf = 269.0f;
                 r.windowSec      = windowDurationUs * 1e-6f;
                 r.timestampMs    = millis();
@@ -605,9 +568,6 @@ public:
         float dtFactor;
         float cpm = _applyDeadTime(rawCPS, rawCPM, dtFactor);
 
-        // --- Update EMA ---
-        _updateEMA(cpm);
-
         // --- 95% Confidence interval (RadPro formula) ---
         // Uses Poisson statistics with a first-order correction term for small N.
         // The result is the relative half-width of the 95% CI expressed as a %.
@@ -627,8 +587,6 @@ public:
         // Return NaN for uSvH so the caller knows the conversion is not possible,
         // while CPM (the raw count rate) remains valid and useful.
         r.uSvH                  = (sensitivity > 0.0f) ? (cpm / sensitivity) : NAN;
-        r.cpmEmaFast            = emaFast;
-        r.cpmEmaSlow            = emaSlow;
         r.confidenceHalf        = confidence;
         r.pulseCount            = windowPulses;
         r.compensatedPulseCount = _applyDeadTimeCarry(windowPulses, dtFactor);
@@ -669,11 +627,11 @@ public:
     // =========================================================================
 
     /**
-     * @brief Reset the pulse buffer, pulse counter, and EMA state.
+     * @brief Reset the pulse buffer and pulse counter.
      *
-     * Clears the ring buffer (_head, _count → 0) and resets _totalPulses and
-     * the EMA to their uninitialised sentinel values. _lifetimePulses is NOT
-     * reset — it accumulates across the entire device lifetime.
+     * Clears the ring buffer (_head, _count → 0) and resets _totalPulses.
+     * _lifetimePulses is NOT reset — it accumulates across the entire device
+     * lifetime.
      *
      * Use this after counterSaturated becomes true, or after changing the
      * averaging mode to start fresh.
@@ -682,7 +640,6 @@ public:
         GEIGER_ENTER_CRITICAL();
         _head = _count = _totalPulses = 0;
         _lastPulseMs = 0;
-        _emaFast = _emaSlow = -1.0f;
         _dtCarry = 0.0f;
         GEIGER_EXIT_CRITICAL();
     }
@@ -781,15 +738,12 @@ public:
     /**
      * @brief Change the averaging mode.
      *
-     * Clears the pulse buffer and resets the EMA, because the old buffer
-     * contents are not meaningful with the new window definition.
-     * _totalPulses and _lifetimePulses are preserved.
+     * Clears the pulse buffer. _totalPulses and _lifetimePulses are preserved.
      */
     void setMode(AveragingMode m) {
         GEIGER_ENTER_CRITICAL();
         _mode = m;
         _head = _count = 0;
-        _emaFast = _emaSlow = -1.0f;
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -884,44 +838,6 @@ public:
     /// Return the ADAPTIVE_PRECISION window floor [s] (default: 5).
     float getAdaptiveMinWindow()  const { return _adaptiveMinWindow; }
 
-    // =========================================================================
-    // SETTERS — EMA
-    // =========================================================================
-
-    /**
-     * @brief Set the fast EMA smoothing factor (default: 0.10).
-     *
-     * Alpha controls how quickly the EMA follows new measurements:
-     *   new_ema = old_ema + alpha × (new_value - old_ema)
-     *
-     * Larger alpha → faster response, more noise.
-     * Smaller alpha → slower response, smoother output.
-     *
-     * Changing alpha resets the EMA to avoid an inconsistent history.
-     */
-    void setEmaAlphaFast(float a) { 
-        GEIGER_ENTER_CRITICAL();
-        _emaAlphaFast = a;
-        _emaFast = -1.0f;
-        GEIGER_EXIT_CRITICAL();
-    }
-
-    /// Set the slow EMA smoothing factor (default: 0.01). Resets the slow EMA.
-    void setEmaAlphaSlow(float a) {
-        GEIGER_ENTER_CRITICAL();
-        _emaAlphaSlow = a;
-        _emaSlow = -1.0f;
-        GEIGER_EXIT_CRITICAL();
-    }
-
-    // =========================================================================
-    // GETTERS — EMA
-    // =========================================================================
-
-    /// Return the fast EMA smoothing factor (default: 0.10).
-    float getEmaAlphaFast() const { return _emaAlphaFast; }
-    /// Return the slow EMA smoothing factor (default: 0.01).
-    float getEmaAlphaSlow() const { return _emaAlphaSlow; }
 
     // =========================================================================
     // SETTERS — tube alive timeout
@@ -1185,8 +1101,6 @@ private:
     float    _adaptiveMinWindow; ///< ADAPTIVE_PRECISION: window floor [s] (default: 5)
     float    _deadTimeMaxFactor; ///< Maximum compensation factor (default: 10)
     float    _deadTimeWarnRatio; ///< saturated flag threshold, fraction of max (default: 0.8)
-    float    _emaAlphaFast;      ///< Fast EMA smoothing factor (default: 0.10)
-    float    _emaAlphaSlow;      ///< Slow EMA smoothing factor (default: 0.01)
     uint32_t _tubeTimeoutMs;     ///< Tube-alive timeout [ms]. 0 = auto (RadPro formula)
 
     // --- ISR-shared data (volatile: may change at any time from the ISR) ---
@@ -1203,8 +1117,6 @@ private:
                                        ///<   improving dead-time estimate across all sessions.
 
     // --- State (not ISR-shared) ---
-    float _emaFast;  ///< Fast EMA accumulator. Sentinel -1.0 = not yet initialised.
-    float _emaSlow;  ///< Slow EMA accumulator. Sentinel -1.0 = not yet initialised.
     float _dtCarry;  ///< Dead-time compensation fractional carry (RadPro: deadTimeCompensationRemainder).
                      ///< Accumulates the fractional part of the compensated pulse count
                      ///< across calls, so long-term averages do not lose sub-integer counts.
@@ -1501,47 +1413,5 @@ private:
         if (n == 2) return 1.7858216f;
         float normalApprox = 1.959964f / sqrtf((float)n);
         return normalApprox + 0.92095147f / (0.34074598f + (float)n);
-    }
-
-    // -------------------------------------------------------------------------
-    // EMA update
-    // -------------------------------------------------------------------------
-
-    /**
-     * @brief Update both EMA accumulators with a new CPM measurement.
-     *
-     * EMA update formula:
-     *   ema = ema + alpha × (new_value - ema)
-     *       = (1 - alpha) × ema + alpha × new_value
-     *
-     * The equivalent form used here (error correction form) is numerically
-     * more stable because it avoids subtracting large numbers.
-     *
-     * INITIALISATION:
-     *   The sentinel value -1.0 indicates the EMA has never been updated.
-     *   On the first valid measurement, both EMAs are set directly to the
-     *   measured CPM. Without this, they would start at 0 and "creep up"
-     *   to the true value over many readings, biasing early results.
-     *
-     * TWO EMA LAYERS:
-     *   _emaFast (alpha = 0.10): responds within ~10 readings. Tracks changes.
-     *   _emaSlow (alpha = 0.01): responds within ~100 readings. Estimates the
-     *     stable background level.
-     *
-     *   CAUTION: A difference between the two EMAs is normal at background levels
-     *   due to Poisson fluctuations (individual CPM values vary ±40-50%). Only a
-     *   sustained, growing divergence over many minutes indicates a real change.
-     */
-    void _updateEMA(float cpm) {
-        if (isnan(cpm)) return;
-        GEIGER_ENTER_CRITICAL();
-        if (_emaFast < 0.0f) {
-            // First valid measurement — initialise both EMAs directly
-            _emaFast = _emaSlow = cpm;
-        } else {
-            _emaFast += _emaAlphaFast * (cpm - _emaFast);
-            _emaSlow += _emaAlphaSlow * (cpm - _emaSlow);
-        }
-        GEIGER_EXIT_CRITICAL();
     }
 };
