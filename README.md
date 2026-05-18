@@ -26,7 +26,7 @@ The library is split into two independent components that can be used together:
 
 ### GeigerTubes
 
-- Sensitivity database for 7 common GM tubes (J305, M4011/J321, HH614, SBM-20, SI-3BG, LND7317, J305 90 mm)
+- Sensitivity database for 6 common GM tubes (J305, M4011/J321, HH614, SBM-20, SI-3BG, LND7317)
 - 14 radiation source presets (Cs-137, Co-60, Am-241, background, and more)
 - Data from **[Rad Lab](https://github.com/Gissio/radlab)** numerical simulations via RadPro v3.1.1
 - Compact uint8_t encoding (logarithmic scale) — 84 bytes vs. 336 bytes for raw floats
@@ -140,7 +140,6 @@ enum GeigerTube {
     TUBE_SBM20,     // SBM-20 — Soviet-era surplus, popular in the DIY community
     TUBE_SI3BG,     // SI-3BG — low sensitivity, suited for high-radiation detection
     TUBE_LND7317,   // LND 7317 — cylindrical, halogen-quenched
-    TUBE_J305_90,   // J305 90 mm — sensitivity derived from J305 107 mm (x0.721) ⚠ UNVERIFIED
     TUBE_CUSTOM,    // Custom tube — no Rad Lab data; use setSensitivity() directly
     TUBE_J321 = TUBE_M4011  // Alias — J321 shares identical Rad Lab data with M4011
 };
@@ -154,19 +153,9 @@ enum GeigerTube {
 |`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.611|
 |`TUBE_SI3BG`|SI-3BG|3.3 CPM/(µSv/h)|3.6 CPM/(µSv/h)|— (not measured)|
 |`TUBE_LND7317`|LND 7317|252.6 CPM/(µSv/h)|—|— (not measured)|
-|`TUBE_J305_90`|J305 90 mm|97.5 CPM/(µSv/h) ⚠|130.1 CPM/(µSv/h) ⚠|1.069 ⚠|
 |`TUBE_CUSTOM`|any|—|—|use `setSensitivity()`|
 
-> ⚠ **TUBE_J305_90** sensitivity values are **derived**, not from Rad Lab simulation.
-> The Cs-137 value is scaled from J305 107 mm by the measured length ratio (×0.721).
-> The effective length of the 90 mm tube is confirmed at 72 mm (9 mm contact surfaces
-> per end). The 107 mm tube has effL=89 mm, predicting a ratio of 72 mm / 89 mm = 0.809
-> — still −10.9% above the measured 0.721.
-> The remaining discrepancy is unresolved. Source correction factors and
-> fieldFactor are assumed identical to J305 107 mm — both pending verification
-> with a Cs-137 source measurement.
-
-Cs-137 and background (BG) sensitivities are Rad Lab simulation values unless marked ⚠. Empirical field factors are measured — see [Empirical Field Factors](#empirical-field-factors) for details.
+Cs-137 and background (BG) sensitivities are Rad Lab simulation values. Empirical field factors are measured — see [Empirical Field Factors](#empirical-field-factors) for details.
 
 `TUBE_CUSTOM` has no Rad Lab baseline: `tubeSourceSensitivity()` returns NaN, and `setFieldFactor()` has no effect. Use `setSensitivity()` to set the sensitivity directly.
 
@@ -628,7 +617,7 @@ inside `onPulse()`.
 
 Yes — but the probability is negligible at background levels.
 
-`getReading()` acquires several short critical sections in sequence: the main 
+`getReading()` acquires several short critical sections in sequence: the main
 buffer snapshot (256 × `uint32_t`), plus smaller snapshots in
 `_windowDurationUs()`, `_applyDeadTime()`, `_applyDeadTimeCarry()` and
 `_tubeAliveCheck()`. Each individual section is brief
@@ -680,7 +669,7 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |M4011|21.11|**1.269**||
 |SBM-20|19.66|**1.611**|Largest deviation — steel wall energy filtering(?)|
 |J305 107 mm|22.19|**1.069**|Close to Rad Lab prediction|
-|J305 90 mm|14.96|⚠ 1.069|Use `TUBE_J305_90` (derived) or `setSensitivity(130.1f)` with `TUBE_CUSTOM`|
+|J305 90 mm|14.96|—|Use `setSensitivity(130.1f)` with `TUBE_CUSTOM`|
 |||||
 
 **Key ratios vs. Rad Lab predictions:**

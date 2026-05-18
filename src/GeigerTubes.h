@@ -104,17 +104,8 @@ enum GeigerTube {
     TUBE_SBM20   = 3,   ///< SBM-20 (Soviet-era surplus, very common in the DIY community)
     TUBE_SI3BG   = 4,   ///< SI-3BG (low sensitivity, mainly for high radiation detection)
     TUBE_LND7317 = 5,   ///< LND 7317 (cylindrical, halogen-quenched)
-    TUBE_J305_90 = 6,   ///< J305 90mm variant — sensitivity derived from J305 107mm
-                        ///< by applying the measured 90mm/107mm length ratio (0.721).
-                        ///< Source correction factors are IDENTICAL to TUBE_J305
-                        ///< (wall material and geometry are the same; only active
-                        ///< length differs). The fieldFactor of 1.069 is also
-                        ///< assumed equal to TUBE_J305 — both are UNVERIFIED
-                        ///< hypotheses pending a parallel background radiation
-                        ///< measurement.
-                        ///< See the empirical field factors section for details.
-    TUBE_COUNT   = 7,   ///< Number of tubes with Rad Lab simulation data
-    TUBE_CUSTOM  = 7,   ///< Custom or unknown tube — no Rad Lab data available.
+    TUBE_COUNT   = 6,   ///< Number of tubes with Rad Lab simulation data
+    TUBE_CUSTOM  = 6,   ///< Custom or unknown tube — no Rad Lab data available.
                         ///< Use setSensitivity() to set the sensitivity directly.
                         ///< tubeSourceSensitivity() returns NaN for this value.
                         ///< setFieldFactor() has no meaning for TUBE_CUSTOM since
@@ -184,16 +175,14 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
     106.105f,  // SBM-20
       3.267f,  // SI-3BG
     252.567f,  // LND7317
-     97.480f,  // J305_90 — DERIVED: 135.200 × 0.721 (measured 90mm/107mm length ratio)
-               //   UNVERIFIED: source factors assumed identical to J305 107mm
 };
 
 /**
  * @brief Source correction factors, stored as uint8_t on a logarithmic scale.
  *
  * WHY ENCODE AS uint8_t?
- *   Storing 7×14 = 98 floats would use 392 bytes of flash. By encoding on a
- *   logarithmic scale we use only 98 bytes, with negligible precision loss.
+ *   Storing 6x14 = 84 floats would use 336 bytes of flash. By encoding on a
+ *   logarithmic scale we use only 84 bytes, with negligible precision loss.
  *
  * ENCODING FORMULA (from RadPro tube.c):
  *   factor = 0.125 × 2^(code / 36)
@@ -208,7 +197,7 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
  *   than to Cs-137. The SI-3BG's small size and geometry make it
  *   exceptionally insensitive to soft 60 kV X-rays.
  *
- * Row order:    J305, M4011, HH614, SBM-20, SI-3BG, LND7317, J305_90
+ * Row order:    J305, M4011, HH614, SBM-20, SI-3BG, LND7317
  * Column order: CS137, CO60, TC99M, I131, LU177, AM241, RADIUM,
  *               URANIUM_ORE, URANIUM_GLASS, DEPLETED_URANIUM,
  *               THORIUM_ORE, XRAYS, K40, BACKGROUND
@@ -220,10 +209,6 @@ static const uint8_t _tubeSourceFactors[TUBE_COUNT][SOURCE_COUNT] = {
     {108,  95, 169, 103, 126, 207, 100, 105, 110, 110, 100, 198,  92, 108}, // SBM-20
     {108, 125, 153,  93, 113,  77, 107, 106, 108, 112,  89,   0, 128, 109}, // SI-3BG
     {108, 107, 154, 104, 127, 167, 107, 111, 114, 113, 108, 161, 107, 115}, // LND7317
-    {108, 113, 204, 107, 172, 236, 111, 117, 124, 123, 113, 196, 110, 123}, // J305_90
-    //  J305_90 IDENTICAL to J305 107mm — wall material and geometry are the same;
-    //  only active length differs. UNVERIFIED: assumes energy response is
-    //  length-independent. Pending verification with a Cs-137 source.
 };
 
 // =============================================================================
@@ -336,46 +321,18 @@ inline float tubeSensitivity(GeigerTube tube) {
 //   ----------  -----------  -----------  -----------------------------------
 //   M4011          21.11        1.269     ESP8266, ~380V HV
 //   SBM-20         19.66        1.611     ESP8266, ~400V HV
-//   J305 107mm     22.19        1.069     ESP8266, ~380V HV
-//   J305 90mm      14.96          —       ESP8266, ~380V HV; use TUBE_J305_90 or
-//                                         setSensitivity(130.1f) directly.
-//                                         TUBE_J305_90 sensitivity is DERIVED
-//                                         (not from Rad Lab simulation).
+//   J305 107 mm    22.19        1.069     ESP8266, ~380V HV
+//   J305 90 mm     14.96          —       ESP8266, ~380V HV
+//                                         use setSensitivity(130.1f).
 //
 // INTERPRETATION
-//   - J305 107mm / SBM-20 ratio: 1.129 (Rad Lab predicts 1.701, -33.6%)
+//   - J305 107 mm / SBM-20 ratio: 1.129 (Rad Lab predicts 1.701, -33.6%)
 //   - M4011 / SBM-20 ratio:      1.074 (Rad Lab predicts 1.363, -21.2%)
 //   - SBM-20 shows the largest deviation (1.54x), consistent with its steel
 //     wall filtering low-energy background components differently than the
 //     simulation assumes.
-//   - J305 90mm has no valid fieldFactor — the Rad Lab sensitivity (180.5) applies
-//     to the 107mm geometry only. Use setSensitivity(130.1f) directly instead
-//     (empirical value: 14.96 CPM / 0.115 µSv/h, ~43.5h run).
-//
-//     Due to the 9 mm contact surfaces at the ends, the effective length of
-//     the 90 mm J305 tube is 72 mm, while that of the 107 mm tube is 89 mm.
-//
-//       effL_90  =  90 mm - 2×9 mm = 72 mm
-//       effL_107 = 107 mm - 2×9 mm = 89 mm
-//       ratio    =  72 mm / 89 mm  = 0.809  (measured: 0.721, -10.9% discrepancy)
-//
-//     The remaining -10.9% gap between the geometric prediction (0.809) and
-//     the measured ratio (0.721) is not fully explained by geometry ratio.
-//     The cause has not yet been determined.
-//
-//     UNVERIFIED HYPOTHESIS: despite the unexplained discrepancy, the
-//     measured ratio (0.721) may still be source-independent, since tube
-//     geometry affects all gamma sources similarly. If confirmed, the
-//     sensitivity for any source can be approximated from the 107mm value:
-//
-//       sens_90(source) ≈ tubeSourceSensitivity(TUBE_J305, source) × 0.721
-//
-//     Example for Cs-137:
-//       J305 107mm Cs-137: 135.200 CPM/(µSv/h)
-//       J305  90mm Cs-137: 135.200 × 0.721 ≈ 97.5 CPM/(µSv/h)  [unverified]
-//
-//     A dedicated Rad Lab simulation for the 90mm geometry would allow a
-//     proper fieldFactor to be derived and this hypothesis to be confirmed.
+//   - J305 90 mm: This tube is not listed in the RadPro table.
+//     Use TUBE_CUSTOM and sensitivity 130.1f.
 //   - The FS-5000 reference itself uses Rad Lab values, so these field factors
 //     represent real-world vs. simulation deviation, not absolute calibration.
 //
@@ -387,11 +344,7 @@ inline float tubeSensitivity(GeigerTube tube) {
 //   while (!geiger.calibrate(0.115f, 15.0f)) { delay(1000); }
 //   float ff = geiger.getFieldFactor();  // save to EEPROM/Flash for next boot
 //
-//   // J305 90mm — Option A: TUBE_J305_90 with assumed fieldFactor:
-//   GeigerMeasurement geiger(TUBE_J305_90, SOURCE_BACKGROUND);
-//   geiger.setFieldFactor(1.069f);   // assumed = J305 107mm — UNVERIFIED
-//
-//   // J305 90mm — Option B: TUBE_CUSTOM with measured sensitivity:
+//   // J305 90 mm — Use TUBE_CUSTOM with measured sensitivity:
 //   GeigerMeasurement geiger(TUBE_CUSTOM, SOURCE_BACKGROUND);
 //   geiger.setSensitivity(130.1f);   // empirical: 14.96 CPM / 0.115 µSv/h, ~43.5h
 
@@ -412,7 +365,6 @@ inline const char* tubeLabel(GeigerTube tube) {
         case TUBE_SBM20:   return "SBM-20";
         case TUBE_SI3BG:   return "SI-3BG";
         case TUBE_LND7317: return "LND7317";
-        case TUBE_J305_90: return "J305-90";
         default:           return "Custom";
     }
 }
