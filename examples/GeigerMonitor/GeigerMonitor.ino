@@ -21,7 +21,7 @@
 #include <RollingStats.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-constexpr int   GEIGER_PIN   = 4;
+constexpr int   GEIGER_PIN   = 13;
 constexpr float DEAD_TIME_US = 150.0f;  // µs — measure with getMeasuredDeadTime(), or leave 0
 
 // ─── GeigerMeasurement ────────────────────────────────────────────────────────

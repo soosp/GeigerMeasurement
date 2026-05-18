@@ -54,7 +54,7 @@
 #define TUBE_TYPE   TUBE_SBM20      // ← change per device: TUBE_J305 / TUBE_M4011 / TUBE_SBM20
 
 // GPIO pin connected to the GM tube output (active-low pulse).
-constexpr int GEIGER_PIN = D7;      // NodeMCU D7 = GPIO13
+constexpr int GEIGER_PIN = 13;
 
 // Minimum number of valid 1-minute bins required before printing the
 // summary block.  At 1 bin/minute this equals a 10-minute warm-up.

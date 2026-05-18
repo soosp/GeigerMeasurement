@@ -28,7 +28,7 @@
 #include <RollingStats.h>
 
 // ─── Pin configuration ────────────────────────────────────────────────────
-constexpr int GEIGER_PIN = D7;  // NodeMCU D7 = GPIO13
+constexpr int GEIGER_PIN = 13;
 
 // ─── GeigerMeasurement ───────────────────────────────────────────────────
 // Start in ADAPTIVE_FAST — provides readings from the first ~19 pulses.

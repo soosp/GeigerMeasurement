@@ -11,7 +11,7 @@
 #include <ExponentialAverage.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-constexpr int   GEIGER_PIN   = D7;      // NodeMCU D7 = GPIO13
+constexpr int   GEIGER_PIN   = 13;
 constexpr float DEAD_TIME_US = 190.0f;  // µs — measure with getMeasuredDeadTime(), or leave 0
 
 // ─── EMA ─────────────────────────────────────────────────────────────────

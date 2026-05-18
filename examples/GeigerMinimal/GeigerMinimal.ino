@@ -8,7 +8,7 @@
  */
 #include <GeigerMeasurement.h>
 
-constexpr int GEIGER_PIN = D7;  // NodeMCU D7 = GPIO13
+constexpr int GEIGER_PIN = 13;
 
 // SBM-20 tube, background radiation, 60-second sliding window (default)
 GeigerMeasurement geiger(TUBE_SBM20, SOURCE_BACKGROUND);

@@ -27,9 +27,9 @@
 #include <GeigerMeasurement.h>
 
 // ─── Pin configuration ────────────────────────────────────────────────────────
-constexpr int GEIGER_PIN = 4;
+constexpr int GEIGER_PIN = 13;
 constexpr int LED_PIN    = 2;
-constexpr int BUZZER_PIN = 5;
+constexpr int BUZZER_PIN = 15;
 
 // ─── Indication parameters ────────────────────────────────────────────────────
 constexpr uint32_t LED_ON_MS          = 10;     // LED flash duration [ms]
