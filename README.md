@@ -667,8 +667,6 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 
 **Results:**
 
----
-
 |Tube|CPM (measured)|fieldFactor|Notes|
 |---|--:|--:|---|
 |M4011|21.11|**1.269**||
