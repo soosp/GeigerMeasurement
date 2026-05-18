@@ -79,7 +79,7 @@
  * USAGE EXAMPLE
  * -----------------------------------------------------------------------------
  * @code
- *   #include "GeigerMeasurement.h"
+ *   #include <GeigerMeasurement.h>
  *
  *   GeigerMeasurement geiger(TUBE_SBM20, SOURCE_BACKGROUND);
  *
@@ -222,7 +222,7 @@ enum class AveragingMode {
  *
  *   // In your sketch or build flags:
  *   #define GEIGER_PULSE_BUFFER_SIZE 512
- *   #include "GeigerMeasurement.h"
+ *   #include <GeigerMeasurement.h>
  *
  *   Or in platformio.ini:
  *   build_flags = -DGEIGER_PULSE_BUFFER_SIZE=512

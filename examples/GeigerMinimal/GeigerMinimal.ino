@@ -6,7 +6,7 @@
  * Output (Serial, 115200 baud):
  *   One line per second with CPM, µSv/h.
  */
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 
 constexpr int GEIGER_PIN = D7;  // NodeMCU D7 = GPIO13
 

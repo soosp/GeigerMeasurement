@@ -23,7 +23,7 @@
  *   Every minute: 30-minute and 1-hour averages from RollingStats.
  */
 
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <ExponentialAverage.h>
 #include <RollingStats.h>
 

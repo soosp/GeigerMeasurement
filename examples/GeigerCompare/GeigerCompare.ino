@@ -43,7 +43,7 @@
  *   RunningStats       (companion library — provides RollingStats and CumulativeStats)
  */
 
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <RollingStats.h>
 #include <CumulativeStats.h>
 

@@ -24,7 +24,7 @@
  * background rates (~20 CPM → one pulse every ~3 seconds).
  */
 
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 
 // ─── Pin configuration ────────────────────────────────────────────────────────
 constexpr int GEIGER_PIN = 4;

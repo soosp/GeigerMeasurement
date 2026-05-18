@@ -16,7 +16,7 @@
  *   RunningStats       (companion library — provides RollingStats)
  */
 
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <ExponentialAverage.h>
 #include <RollingStats.h>
 

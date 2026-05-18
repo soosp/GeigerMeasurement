@@ -7,7 +7,7 @@
  *   One line per second with CPM, µSv/h, EMA values, confidence, and window.
  */
 
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <ExponentialAverage.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
