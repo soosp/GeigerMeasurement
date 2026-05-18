@@ -152,7 +152,7 @@ enum GeigerTube {
 |`TUBE_HH614`|HH614|30.2 CPM/(µSv/h)|40.2 CPM/(µSv/h)|— (not measured)|
 |`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.611|
 |`TUBE_SI3BG`|SI-3BG|3.3 CPM/(µSv/h)|3.6 CPM/(µSv/h)|— (not measured)|
-|`TUBE_LND7317`|LND 7317|252.6 CPM/(µSv/h)|—|— (not measured)|
+|`TUBE_LND7317`|LND 7317|252.6 CPM/(µSv/h)|289.0 CPM/(µSv/h)|— (not measured)|
 |`TUBE_CUSTOM`|any|—|—|use `setSensitivity()`|
 
 Cs-137 and background (BG) sensitivities are Rad Lab simulation values. Empirical field factors are measured — see [Empirical Field Factors](#empirical-field-factors) for details.
