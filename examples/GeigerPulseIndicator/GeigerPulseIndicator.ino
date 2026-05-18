@@ -34,7 +34,7 @@ constexpr int BUZZER_PIN = 15;
 // ─── Indication parameters ────────────────────────────────────────────────────
 constexpr uint32_t LED_ON_MS          = 10;     // LED flash duration [ms]
 constexpr uint32_t BUZZER_FREQ_HZ     = 1000;   // click frequency [Hz]
-constexpr uint32_t BUZZER_ON_MS       = 5;      // click duration [ms]
+constexpr uint32_t BUZZER_ON_MS       = 2;      // click duration [ms]
 constexpr float    INDICATION_MAX_CPM = 200.0f; // max indication rate [CPM]
                                                 // above this, indications
                                                 // are decimated
