@@ -353,19 +353,16 @@ inline float tubeSensitivity(GeigerTube tube) {
 //     to the 107mm geometry only. Use setSensitivity(130.1f) directly instead
 //     (empirical value: 14.96 CPM / 0.115 µSv/h, ~43.5h run).
 //
-//     The 90mm/107mm sensitivity ratio (0.721) is notably below both the
-//     simple geometric length ratio (90/107 = 0.841, -14.3%) and the
-//     effective-length prediction assuming ~3.5mm dead zones per end:
+//     Due to the 9 mm contact surfaces at the ends, the effective length of
+//     the 90 mm J305 tube is 72 mm, while that of the 107 mm tube is 89 mm.
 //
-//       effL_90  = 90  - 2×3.5 = 83 mm
-//       effL_107 = 107 - 2×3.5 = 100 mm
-//       ratio    = 83 / 100     = 0.830  (measured: 0.721, -13.2% discrepancy)
+//       effL_90  =  90 mm - 2×9 mm = 72 mm
+//       effL_107 = 107 mm - 2×9 mm = 89 mm
+//       ratio    =  72 mm / 89 mm  = 0.809  (measured: 0.721, -10.9% discrepancy)
 //
-//     The large discrepancy between the geometric prediction (0.830) and the
-//     measured ratio (0.721) is not explained by end-zone geometry alone.
-//     Possible causes: non-uniform electric field near the cathode ends,
-//     energy-dependent efficiency variation, or uncertainty in the actual
-//     tube length. The cause is unresolved.
+//     The remaining -10.9% gap between the geometric prediction (0.809) and
+//     the measured ratio (0.721) is not fully explained by geometry ratio.
+//     The cause has not yet been determined.
 //
 //     UNVERIFIED HYPOTHESIS: despite the unexplained discrepancy, the
 //     measured ratio (0.721) may still be source-independent, since tube
