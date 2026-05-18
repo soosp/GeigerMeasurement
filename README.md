@@ -674,8 +674,6 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |J305 107 mm|22.19|**1.069**|Close to Rad Lab prediction|
 |J305 90 mm|14.96|—|Use `setSensitivity(130.1f)` with `TUBE_CUSTOM`|
 
----
-
 **Key ratios vs. Rad Lab predictions:**
 
 |Ratio|Measured|Rad Lab|Deviation|
@@ -683,8 +681,6 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |M4011 / SBM-20|1.074|1.363|−21.2%|
 |J305 107 mm / SBM-20|1.129|1.701|−33.6%|
 |J305 107 mm / M4011|1.051|1.248|−15.8%|
-
----
 
 > These are single-location measurements on individual tube samples.
 > Your values may differ due to tube-to-tube manufacturing tolerances,
