@@ -168,7 +168,7 @@ enum GeigerSource {
  *
  * Note on J321: not listed separately in RadPro. Use TUBE_J321 or TUBE_M4011 — they are identical.
  */
-static const float _tubeSensitivities[TUBE_COUNT] = {
+inline constexpr float _tubeSensitivities[TUBE_COUNT] = {
     135.200f,  // J305
     108.345f,  // M4011/J321
      30.157f,  // HH614
@@ -202,7 +202,7 @@ static const float _tubeSensitivities[TUBE_COUNT] = {
  *               URANIUM_ORE, URANIUM_GLASS, DEPLETED_URANIUM,
  *               THORIUM_ORE, XRAYS, K40, BACKGROUND
  */
-static const uint8_t _tubeSourceFactors[TUBE_COUNT][SOURCE_COUNT] = {
+inline constexpr uint8_t _tubeSourceFactors[TUBE_COUNT][SOURCE_COUNT] = {
     {108, 113, 204, 107, 172, 236, 111, 117, 124, 123, 113, 196, 110, 123}, // J305
     {108, 113, 204, 107, 173, 236, 111, 118, 124, 123, 113, 196, 110, 123}, // M4011/J321
     {108, 124, 156,  93, 113, 185, 106, 106, 106, 112,  62, 153, 125, 112}, // HH614
