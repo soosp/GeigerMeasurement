@@ -462,7 +462,7 @@ geiger.setDeadTime(150.0f);
 // Option 2: estimate from the pulse buffer (upper bound)
 // Collect at least 500 pulses first for a useful estimate
 float dt = geiger.measureDeadTime();
-if (dt > 0) geiger.setDeadTime(dt * 1e6f);  // s → µs
+if (dt > 0) geiger.setDeadTime(dt);
 ```
 
 ---
