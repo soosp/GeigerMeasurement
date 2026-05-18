@@ -658,11 +658,14 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 **Conditions:**
 
 - Location: Pannonhalma, Hungary — indoor, ~1 m above floor
+- Hardware: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, ~380–400V HV, running in parallel
+- Source setting: `SOURCE_BACKGROUND`
 - Duration: ~43.5 hours parallel run (lifetime average, Poisson error ~1%)
 - Reference: BOSEAN FS-5000 with J321 tube, RadPro 3.1.1 (factory calibration)
   displaying ~16.6 CPM → 0.115 µSv/h, consistent with regional OMSZ/HM
   monitoring network data (~0.087–0.115 µSv/h in the Győr–Pápa region)
-- Hardware: ESP8266 NodeMCU, ~380–400V HV, `SOURCE_BACKGROUND`
+
+---
 
 |Tube|CPM (measured)|fieldFactor|Notes|
 |---|--:|--:|---|
@@ -670,7 +673,8 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |SBM-20|19.66|**1.611**|Largest deviation — steel wall energy filtering(?)|
 |J305 107 mm|22.19|**1.069**|Close to Rad Lab prediction|
 |J305 90 mm|14.96|—|Use `setSensitivity(130.1f)` with `TUBE_CUSTOM`|
-|||||
+
+---
 
 **Key ratios vs. Rad Lab predictions:**
 
@@ -679,7 +683,8 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |M4011 / SBM-20|1.074|1.363|−21.2%|
 |J305 107 mm / SBM-20|1.129|1.701|−33.6%|
 |J305 107 mm / M4011|1.051|1.248|−15.8%|
-|||||
+
+---
 
 > These are single-location measurements on individual tube samples.
 > Your values may differ due to tube-to-tube manufacturing tolerances,
