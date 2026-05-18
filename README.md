@@ -665,7 +665,11 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
   displaying ~16.6 CPM → 0.115 µSv/h, consistent with regional OMSZ/HM
   monitoring network data (~0.087–0.115 µSv/h in the Győr–Pápa region)
 
+<<<<<<< HEAD
 **Results:**
+=======
+---
+>>>>>>> aa7fe347bff086c13ab1a5ff43037b416bb9547d
 
 |Tube|CPM (measured)|fieldFactor|Notes|
 |---|--:|--:|---|
