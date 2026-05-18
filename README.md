@@ -402,6 +402,8 @@ uint32_t lifetimePulses();  // pulses since power-on — never reset, saturates 
 
 Both are read under a critical section for consistency on ESP32.
 
+**Note on saturation:** For an SBM-20 tube, the saturation time of the `uint32_t` counters is **408 years** under continuous operation with background radiation (20 CPM), but even with continuous extreme high radiation levels (10,000 CPM), it is **298 days**.
+
 ---
 
 #### `reset()`
