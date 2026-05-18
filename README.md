@@ -73,7 +73,7 @@ For long-term averaging, also copy `RollingStats.h` and `CumulativeStats.h` from
 ## Quick Start
 
 ```cpp
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <RollingStats.h>
 
 // SBM-20 tube, background radiation, 60-second sliding window
@@ -243,7 +243,7 @@ Preprocessor define to set the pulse ring buffer size. Must be a power of 2. Def
 
 ```cpp
 #define GEIGER_PULSE_BUFFER_SIZE 512
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 ```
 
 Or in `platformio.ini`:
@@ -705,7 +705,7 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 For long-term averaging (30-minute, 1-hour, 24-hour windows), install the companion library: **[RunningStats](https://github.com/soosp/RunningStats)**
 
 ```cpp
-#include "GeigerMeasurement.h"
+#include <GeigerMeasurement.h>
 #include <RollingStats.h>  // from soosp/RunningStats
 
 RollingStats<128, 60> stats;  // 128 bins × 60s = 2 hours
