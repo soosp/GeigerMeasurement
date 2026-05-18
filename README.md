@@ -691,7 +691,8 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 
 |Sketch|Description|
 |---|---|
-|`GeigerMeasurement.ino`|Minimal single-file example|
+|`GeigerMinimal.ino`|Minimal single-file example|
+|`GeigerMeasurement.ino`|Basic example displays CPM, µSv/h, EMA values, confidence, and window|
 |`GeigerMonitor.ino`|Full-featured monitor with RunningStats|
 |`GeigerBackground.ino`|Background monitoring with adaptive→fixed mode transition|
 |`GeigerCompare.ino`|Parallel tube sensitivity comparison — CSV output, lifetime average, accumulated dose|
