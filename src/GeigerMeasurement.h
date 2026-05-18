@@ -1003,6 +1003,11 @@ public:
         if (!r.valid)                            return false;
         if (knownUsvH <= 0.0f)                   return false;
         if (r.confidenceHalf > maxConfidencePct) return false;
+        // In theory, the value of _radlabSensitivity could change between the
+        // return of getReading() and the subsequent critical section (e.g., a
+        // call to setTube() from another task), meaning there is a potential
+        // race condition; however, this should not occur during a calibration
+        // session provided the software is used correctly on the user’s end.
         GEIGER_ENTER_CRITICAL();
         float radlabSensitivity = _radlabSensitivity;
         if (!isnan(radlabSensitivity)) {
@@ -1145,6 +1150,9 @@ private:
      *   Both conditions must be met: enough pulses AND enough time elapsed.
      *   (RadPro: minTime = 5s, minPulseCount = INSTANTANEOUS_RATE_PULSE_COUNT_MIN)
      *   Before enough pulses accumulate, returns the full elapsed time so far.
+     * 
+     * Called from getReading() after the main critical section has been released.
+     * Acquires its own brief critical section to snapshot adaptive parameters.
      */
     float _windowDurationUs(uint32_t head, uint32_t count,
                             const uint32_t* buf, uint32_t now) const {
@@ -1271,6 +1279,9 @@ private:
      * @return            Integer compensated pulse count
      */
     uint32_t _applyDeadTimeCarry(uint32_t pulseCount, float factor) {
+        // _dtCarry is also written by reset() under a critical section,
+        // so we must hold the lock here too to exclude concurrent reset() calls
+        // on ESP32 (two cores).
         GEIGER_ENTER_CRITICAL();
         _dtCarry += factor * (float)pulseCount;
         uint32_t compensated = (uint32_t)_dtCarry;
