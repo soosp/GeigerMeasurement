@@ -49,18 +49,34 @@ Arduino IDE 1.8+ or PlatformIO.
 
 ### Arduino IDE
 
+**Install via Library Manager:**
+
+Search for **GeigerMeasurement** in the Library Manager (Sketch → Include Library → Manage Libraries).
+
+**Install manually:**
+
 1. Download this repository as a ZIP file
 2. In Arduino IDE: **Sketch → Include Library → Add .ZIP Library**
 3. Optionally install **[RunningStatistics](https://github.com/soosp/RunningStatistics)** the same way for long-term averaging support
 
 ### PlatformIO
 
+**Install from PlatformIO registry:**
+
 Add to your `platformio.ini`:
 
 ```ini
 lib_deps =
+    soosp/GeigerMeasurement
+    soosp/RunningStatistics ; optional, for long-term data processing
+```
+
+**Install directly from GitHub:**
+
+```ini
+lib_deps =
     https://github.com/soosp/GeigerMeasurement
-    https://github.com/soosp/RunningStatistics  ; optional, for long-term averaging
+    https://github.com/soosp/RunningStatistics
 ```
 
 ### Manual
