@@ -82,7 +82,7 @@ lib_deps =
 ### Manual
 
 Copy `src/GeigerMeasurement.h` and `src/GeigerTubes.h` into your sketch folder.
-For long-term averaging, also copy `RollingStats.h` and `CumulativeStats.h` from the [RunningStatistics](https://github.com/soosp/RunningStatistics) library.
+For long-term data processing, also copy `RollingStats.h`, `CumulativeStats.h` and `ExponentialAverage.h` from the [RunningStatistics](https://github.com/soosp/RunningStatistics) library.
 
 ---
 
