@@ -73,7 +73,7 @@
  *   - Counter saturation detection (uint32_t clamping)
  *   - Configurable PULSE_BUFFER_SIZE via preprocessor define
  *   - ESP32/ESP8266 platform abstraction for critical sections
- *   - RunningStats integration via timestampMs field
+ *   - RunningStatistics integration via timestampMs field
  *
  * -----------------------------------------------------------------------------
  * USAGE EXAMPLE

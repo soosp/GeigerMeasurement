@@ -40,7 +40,7 @@
  *
  * Required libraries:
  *   GeigerMeasurement  (this library)
- *   RunningStats       (companion library — provides RollingStats and CumulativeStats)
+ *   RunningStatistics  (companion library — provides RollingStats and CumulativeStats)
  */
 
 #include <GeigerMeasurement.h>

@@ -22,8 +22,8 @@
   "dependencies": {
     "RunningStats": {
       "owner": "soosp",
-      "name": "RunningStats",
-      "version": "^1.0.0",
+      "name": "RunningStatistics",
+      "version": "^1.0.1",
       "optional": true
     }
   }

@@ -13,7 +13,7 @@
  *
  * Required libraries:
  *   GeigerMeasurement  (this library)
- *   RunningStats       (companion library — provides RollingStats)
+ *   RunningStatistics  (companion library — provides RollingStats)
  */
 
 #include <GeigerMeasurement.h>

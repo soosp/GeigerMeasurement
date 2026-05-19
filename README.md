@@ -51,7 +51,7 @@ Arduino IDE 1.8+ or PlatformIO.
 
 1. Download this repository as a ZIP file
 2. In Arduino IDE: **Sketch → Include Library → Add .ZIP Library**
-3. Optionally install **[RunningStats](https://github.com/soosp/RunningStats)** the same way for long-term averaging support
+3. Optionally install **[RunningStatistics](https://github.com/soosp/RunningStatistics)** the same way for long-term averaging support
 
 ### PlatformIO
 
@@ -60,13 +60,13 @@ Add to your `platformio.ini`:
 ```ini
 lib_deps =
     https://github.com/soosp/GeigerMeasurement
-    https://github.com/soosp/RunningStats  ; optional, for long-term averaging
+    https://github.com/soosp/RunningStatistics  ; optional, for long-term averaging
 ```
 
 ### Manual
 
 Copy `src/GeigerMeasurement.h` and `src/GeigerTubes.h` into your sketch folder.
-For long-term averaging, also copy `RollingStats.h` and `CumulativeStats.h` from the [RunningStats](https://github.com/soosp/RunningStats) library.
+For long-term averaging, also copy `RollingStats.h` and `CumulativeStats.h` from the [RunningStatistics](https://github.com/soosp/RunningStatistics) library.
 
 ---
 
@@ -693,20 +693,20 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 |---|---|
 |`GeigerMinimal.ino`|Minimal single-file example|
 |`GeigerMeasurement.ino`|Basic example displays CPM, µSv/h, EMA values, confidence, and window|
-|`GeigerMonitor.ino`|Full-featured monitor with RunningStats|
+|`GeigerMonitor.ino`|Full-featured monitor with RunningStatistics|
 |`GeigerBackground.ino`|Background monitoring with adaptive→fixed mode transition|
 |`GeigerCompare.ino`|Parallel tube sensitivity comparison — CSV output, lifetime average, accumulated dose|
 |`GeigerPulseIndicator.ino`|Demonstrates per-pulse LED flash and passive buzzer click indicators|
 
 ---
 
-## Optional: RunningStats
+## Optional: RunningStatistics
 
-For long-term averaging (30-minute, 1-hour, 24-hour windows), install the companion library: **[RunningStats](https://github.com/soosp/RunningStats)**
+For long-term averaging (30-minute, 1-hour, 24-hour windows), install the companion library: **[RunningStatistics](https://github.com/soosp/RunningStatistics)**
 
 ```cpp
 #include <GeigerMeasurement.h>
-#include <RollingStats.h>  // from soosp/RunningStats
+#include <RollingStats.h>  // from soosp/RunningStatistics
 
 RollingStats<128, 60> stats;  // 128 bins × 60s = 2 hours
 
