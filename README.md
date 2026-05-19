@@ -453,7 +453,6 @@ As a starting point, here are some commonly used dead-time values found online:
 |SI3BG|200|Value recommended by testers on varios online forums.|
 |HH614|15|According to the datasheet.|
 |LND7317|40|According to the datasheet, but based on measurements elsewhere, up to 270µs is recommended.|
-||||
 
 ```cpp
 // Option 1: set a known value
