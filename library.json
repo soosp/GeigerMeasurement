@@ -18,13 +18,5 @@
   "license": "MIT",
   "frameworks": "arduino",
   "platforms": ["espressif8266", "espressif32"],
-  "headers": ["GeigerMeasurement.h", "GeigerTubes.h"],
-  "dependencies": {
-    "RunningStats": {
-      "owner": "soosp",
-      "name": "RunningStatistics",
-      "version": "^1.0.1",
-      "optional": true
-    }
-  }
+  "headers": ["GeigerMeasurement.h", "GeigerTubes.h"]
 }
