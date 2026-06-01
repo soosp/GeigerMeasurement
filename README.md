@@ -452,6 +452,11 @@ Changes the averaging mode. Clears the pulse buffer. `totalPulses` and `lifetime
 void  setDeadTime(float us);           // dead time [µs], 0 = disabled
 void  setDeadTimeMaxFactor(float f);   // compensation cap (default: 10.0)
 void  setDeadTimeWarnRatio(float r);   // saturated threshold (default: 0.8)
+```
+
+#### Dead-time getters
+
+```cpp
 float getDeadTime()          const;    // current dead time [µs]
 float getDeadTimeMaxFactor() const;    // current compensation cap
 float getDeadTimeWarnRatio() const;    // current saturation threshold
