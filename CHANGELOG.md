@@ -4,9 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `getReading()` now sets `tubeAlive` and `timestampMs` on every return path.
+  Two early returns in adaptive mode (zero window duration, and fewer than two
+  pulses inside the window) previously returned the value-initialised struct,
+  leaving `tubeAlive` false and `timestampMs` zero. Both are routine at
+  background count rates with `ADAPTIVE_FAST`. The false `tubeAlive` reads as a
+  dead tube, and a zero `timestampMs` passed to `RollingStats::addSample()`
+  underflows its elapsed-time arithmetic, committing the entire ring buffer as
+  NaN bins. `valid` still reports false on these paths — the numerical fields
+  remain meaningless, as documented.
+
 ### Changed
 
 - Minor documentation fix in README.md
+- Documented that `tubeAlive` and `timestampMs` are set regardless of `valid`
 
 ## [1.0.2] - 2026-05-19
 

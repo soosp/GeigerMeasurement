@@ -303,6 +303,7 @@ struct GeigerReading {
     uint32_t timestampMs; ///< Time of measurement [ms since boot, from millis()]
                           ///<   Use this (not millis()) when calling RollingStats::addSample()
                           ///<   to avoid skew from processing time after getReading().
+                          ///<   Set on every return path, including when valid is false.
 
     // --- Status flags ---
     bool valid;            ///< true if numerical fields contain a valid measurement.
@@ -313,6 +314,9 @@ struct GeigerReading {
                            ///<   of the 10× cap). Indicates the tube may be counting
                            ///<   inaccurately due to very high radiation.
     bool tubeAlive;        ///< false if no pulse has arrived within the timeout period.
+                           ///<   Set on every return path, including when valid is
+                           ///<   false: whether the tube is alive matters most when
+                           ///<   no rate can be computed yet.
                            ///<   The timeout is sensitivity-dependent (RadPro formula):
                            ///<   time for 10 pulses at 0.05 µSv/h. A false value may
                            ///<   indicate a broken tube, open circuit, or missing HV supply.
@@ -520,7 +524,13 @@ public:
 
         // --- Determine averaging window duration ---
         float windowDurationUs = _windowDurationUs(head, count, buf, now);
-        if (windowDurationUs <= 0.0f) return r;
+        if (windowDurationUs <= 0.0f) {
+            // Invalid reading, but tubeAlive and timestampMs are meaningful
+            // regardless of valid and must be set on every return path.
+            r.tubeAlive   = _tubeAliveCheck(lastPulseMs);
+            r.timestampMs = millis();
+            return r;
+        }
 
         // --- Count pulses within the window ---
         uint32_t windowPulses = _countInWindow(head, count, buf, now, windowDurationUs);
@@ -538,7 +548,15 @@ public:
                 r.valid          = true;
                 return r;
             }
-            return r;  // adaptive mode — not enough data
+            // Adaptive mode — not enough data in the window. Routine at
+            // background rates, where fewer than two pulses often fall inside
+            // a short adaptive window. valid stays false, but tubeAlive and
+            // timestampMs are still filled in: a caller needs to know whether
+            // the tube is alive precisely when the rate is not yet measurable,
+            // and a zero timestampMs underflows RollingStats::addSample().
+            r.tubeAlive   = _tubeAliveCheck(lastPulseMs);
+            r.timestampMs = millis();
+            return r;
         }
 
         // --- Instantaneous rate (RadPro formula) ---
