@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-08-28
+
 ### Fixed
 
 - `getReading()` now sets `tubeAlive` and `timestampMs` on every return path.
@@ -41,7 +43,8 @@ All notable changes to this project will be documented in this file.
 
 - First public release
 
-[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.0.2...HEAD
+[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.0.3...HEAD
+[1.0.3]: https://github.com/soosp/GeigerMeasurement/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/soosp/GeigerMeasurement/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/soosp/GeigerMeasurement/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/soosp/GeigerMeasurement/releases/tag/1.0.0

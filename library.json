@@ -1,6 +1,6 @@
 {
   "name": "GeigerMeasurement",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Geiger-Müller counter measurement library for ESP32 and ESP8266. Implements the core measurement algorithms of the RadPro project (Gissio), adapted for the Arduino platform. Features five averaging modes, dead-time compensation, 95% confidence interval, in-situ dead-time measurement, live calibration, and fault detection.",
   "keywords": "geiger, radiation, dosimeter, measurement, ESP32, ESP8266, GM tube",
   "authors": [
