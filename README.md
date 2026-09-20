@@ -674,6 +674,26 @@ The Rad Lab simulation values are theoretical (Cs-137 reference geometry). In pr
 
 Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine the value for your specific tube and location.
 
+### Operating data
+
+```cpp
+struct GeigerTubeOperating {
+    uint16_t plateauMinV, plateauMaxV, recommendedV, absoluteMaxV, deadTimeUs;
+};
+GeigerTubeOperating tubeOperating(GeigerTube tube);
+bool                tubeHasPlateau(GeigerTube tube);
+```
+
+Datasheet figures for driving and checking a tube — the plateau it counts correctly over, the voltage above which it is damaged, and the dead time where one is specified. Tube properties like the sensitivities, true in any circuit.
+
+**Zero means no data, not zero volts.** Only sourced figures are included; where a datasheet gives no value the field is left empty rather than estimated, because a plateau set too narrow reports a healthy supply as faulty and nothing downstream can tell the number was invented. `tubeHasPlateau()` is the guard for the common case.
+
+Note the spread: the plateau runs 350–475 V for an SBM-20 and 475–675 V for an LND7317. A board built around one will not drive the other.
+
+`recommendedV` is the manufacturer's figure, carried as given — the library neither uses it nor endorses it. Read it with care: it is not always mid-plateau and the sheets disagree with each other, the J305's naming 420 V in a 380–480 V plateau against the M4011's 380 V at the very bottom of 380–450. Mid-plateau is where a supply is least sensitive to drift, and at the knee a few volts move the counting efficiency far more than the plateau slope suggests.
+
+`plateauMaxV` and `absoluteMaxV` differ and are easy to conflate: above the plateau the counts are wrong, above the absolute maximum the tube is being damaged. An unregulated supply needs the first; a regulated one should respect both.
+
 ### Measured values
 
 ![Measurement setup: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, running in parallel — BOSEAN FS-5000 as reference](assets/measurement_setup.jpg)

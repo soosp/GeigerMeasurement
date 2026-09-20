@@ -377,6 +377,136 @@ inline float tubeSensitivity(GeigerTube tube) {
 //   GeigerMeasurement geiger(TUBE_CUSTOM, SOURCE_BACKGROUND);
 //   geiger.setSensitivity(122.2f);   // empirical: 14.3 CPM / 0.1161 µSv/h, 214 h
 
+// =============================================================================
+// OPERATING DATA — plateau, voltage limits, dead time
+// =============================================================================
+
+/**
+ * @brief Datasheet operating figures for a tube.
+ *
+ * Here for the same reason the sensitivities are: these are properties of the
+ * tube, not decisions an application makes. A plateau range is a fact about the
+ * glass and the gas, it holds in any circuit, and every project that drives a
+ * tube needs it — the alternative is each of them keeping its own copy and
+ * getting it wrong separately.
+ *
+ * **A zero means no data, not zero volts.** Only sourced figures are here;
+ * where no datasheet was to hand the fields are left empty rather than
+ * estimated. A guess in a library is worse than a gap: a plateau set too narrow
+ * reports a healthy supply as faulty, and nothing downstream can tell that the
+ * number was invented.
+ *
+ * Where sources disagree, the widest credible plateau is taken. A window
+ * narrower than the real plateau raises a fault on a working supply; one
+ * slightly wider only notices a drift a little later, and drift of that size is
+ * not subtle.
+ *
+ * @section limits Two limits, not one
+ * `plateauMaxV` and `absoluteMaxV` mean different things and are easy to
+ * conflate. Above the plateau the counts are wrong; above the absolute maximum
+ * the tube is being damaged. A supply that cannot be regulated only needs the
+ * first, to know whether to trust a reading; one that can should also respect
+ * the second.
+ */
+struct GeigerTubeOperating {
+    uint16_t plateauMinV;    ///< Lower end of the counting plateau [V]. 0 = unknown.
+    uint16_t plateauMaxV;    ///< Upper end of the counting plateau [V]. 0 = unknown.
+    /**
+     * The operating point the datasheet names [V]. 0 = unknown.
+     *
+     * The manufacturer's figure, carried as given — the library neither uses it
+     * nor endorses it. Worth knowing when choosing a tube, and worth reading
+     * with care, because it is not always mid-plateau and the sheets do not
+     * agree with each other: the J305's names 420 V in a 380-480 V plateau, the
+     * M4011's names 380 V at the very bottom of 380-450.
+     *
+     * Mid-plateau is where a supply is least sensitive to drift, and at the
+     * knee a few volts move the counting efficiency far more than the plateau
+     * slope suggests. Whether a lower point buys tube life is a plausible guess
+     * and not something any of these sheets states; at background it would be
+     * moot either way, since 10^9 counts at 20 CPM is most of a century.
+     */
+    uint16_t recommendedV;
+    uint16_t absoluteMaxV;   ///< Damage threshold [V]. 0 = unknown.
+    uint16_t deadTimeUs;     ///< Datasheet dead time [us]. 0 = unknown or unspecified.
+};
+
+/**
+ * @brief Operating data, row order matching the GeigerTube enum.
+ *
+ * Sources, row by row:
+ *
+ *   J305    Factory sheet Q/FG394.091-2003 (State Factory 772). Plateau
+ *           380-480 V, recommended 420 V, minimum discharge 550 V. Seller
+ *           listings for both the 107 mm and 90 mm tubes say 380-450, and a
+ *           distributor table says 360-440; the factory sheet is the primary
+ *           source and the widest.
+ *   M4011   M4011 parameter sheet: working voltage 380-450 V, recommended
+ *           380 V, plateau at least 80 V long, maximum 550 V. J321 shares it.
+ *   HH614   Nanjing Hean datasheet: operating 400-500 V, recommended 420 V,
+ *           maximum 550 V, dead time 15 us, plateau slope <=0.3%/V.
+ *   SBM-20  ODO.339.172 TU: operating 350-475 V, recommended 400 V, minimum
+ *           dead time 190 us at 400 V.
+ *   SI-3BG  Soviet datasheet: working voltage 380-460 V, plateau 80 V long,
+ *           slope 0.25%/V. No recommended point, maximum or dead time given.
+ *           Note its intended use: a 300 R/h range tube that barely responds to
+ *           background at all — a few tenths of a count per second.
+ *   LND7317 LND datasheet: operating 475-675 V, recommended 500 V, maximum
+ *           starting voltage 425 V, minimum dead time 40 us. A pancake with a
+ *           2.0 mg/cm2 mica window — twenty times thinner than the SBM-20's
+ *           steel, and correspondingly more responsive to beta. Its recommended
+ *           anode resistor is 4.7 M (3.3 M minimum), not the 10 M common on
+ *           CAJOE-style boards.
+ *
+ * Dead times are given only where a datasheet states one. The values circulating
+ * for J305 and M4011 (~90 us) are convention rather than specification, and at
+ * background the compensation they would enable is under 0.01% — not worth
+ * carrying an unsourced number for.
+ *
+ * Where a datasheet does give one it is a *minimum*, both for the SBM-20 and the
+ * LND7317. Measurements of individual LND7317s have come out several times its
+ * 40 us, which is a reminder of what these figures are: a starting point for a
+ * measurement, not a substitute for one.
+ */
+inline constexpr GeigerTubeOperating _tubeOperating[TUBE_COUNT] = {
+    // plateau min, max, recommended, absolute max, dead time
+    { 380, 480, 420, 550,   0 },   // J305
+    { 380, 450, 380, 550,   0 },   // M4011/J321
+    { 400, 500, 420, 550,  15 },   // HH614
+    { 350, 475, 400,   0, 190 },   // SBM-20
+    { 380, 460,   0,   0,   0 },   // SI-3BG
+    { 475, 675, 500,   0,  40 },   // LND7317
+};
+
+/**
+ * @brief Return the operating data for a tube.
+ *
+ * Every field is zero for TUBE_CUSTOM, for an out-of-range value, and for any
+ * tube whose datasheet is not represented above. Check before use: a plateau of
+ * 0-0 V would fault on any voltage at all.
+ *
+ * @param tube  Tube type
+ * @return      Operating figures; all-zero when nothing is known.
+ */
+inline GeigerTubeOperating tubeOperating(GeigerTube tube) {
+    if (tube >= TUBE_COUNT) return GeigerTubeOperating{0, 0, 0, 0, 0};
+    return _tubeOperating[tube];
+}
+
+/**
+ * @brief Whether a plateau range is known for this tube.
+ *
+ * Convenience for the common guard, since a plateau check is the usual reason
+ * to ask. Equivalent to testing both plateau fields.
+ *
+ * @param tube  Tube type
+ * @return      true if plateauMinV and plateauMaxV are both set.
+ */
+inline bool tubeHasPlateau(GeigerTube tube) {
+    GeigerTubeOperating o = tubeOperating(tube);
+    return o.plateauMinV != 0 && o.plateauMaxV != 0;
+}
+
 /**
  * @brief Return a short human-readable name for a tube type.
  *

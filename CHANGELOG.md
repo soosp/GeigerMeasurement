@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `tubeOperating()` and `tubeHasPlateau()` in `GeigerTubes.h`: datasheet plateau
+  range, recommended voltage, absolute maximum and dead time per tube. Tube
+  properties in the same sense as the sensitivities — true in any circuit, and
+  needed by every project that drives a tube, which would otherwise each keep
+  their own copy.
+
+  Only sourced figures are included, and zero means "unknown" rather than zero
+  volts: a plateau invented to fill a gap would report healthy supplies as
+  faulty, and nothing downstream could tell. Individual fields are empty where a
+  datasheet gives no value — the SI-3BG states no recommended point or dead
+  time, and neither Chinese sheet states a dead time worth the name.
+
+  `plateauMaxV` and `absoluteMaxV` are separate on purpose — above the plateau
+  the counts are wrong, above the maximum the tube is being damaged.
+
 ### Changed
 
 - The empirical field factors are replaced by a 214-hour four-tube run: J305
