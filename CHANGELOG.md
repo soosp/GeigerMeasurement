@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1]
+
 ### Fixed
 
 - The ISR-shared counters are updated without compound or chained operations on
@@ -99,7 +101,8 @@ All notable changes to this project will be documented in this file.
 
 - First public release
 
-[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.1.0...HEAD
+[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.1.1...HEAD
+[1.1.1]: https://github.com/soosp/GeigerMeasurement/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/soosp/GeigerMeasurement/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/soosp/GeigerMeasurement/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/soosp/GeigerMeasurement/compare/1.0.1...1.0.2
