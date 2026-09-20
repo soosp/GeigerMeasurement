@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `calibrate()` now works for `TUBE_CUSTOM`. It previously skipped its entire
+  body and returned `false` whenever the tube had no Rad Lab baseline, which is
+  exactly the case where a reference measurement is the only way to obtain a
+  sensitivity at all. The measured value is now written to `_sensitivity`
+  regardless; the field factor is derived only where there is a baseline to
+  divide by, and stays 1.0 otherwise — consistent with `setFieldFactor()`, which
+  has never had any effect for a custom tube.
+
+  No change for named tubes. For a custom tube, save and restore
+  `getSensitivity()` / `setSensitivity()` rather than the field factor.
+
 ## [1.0.3] - 2026-08-28
 
 ### Fixed

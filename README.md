@@ -586,9 +586,11 @@ float getRadlabSensitivity() const;   // Rad Lab baseline (before correction)
 void  resetFieldFactor();             // restore to 1.0 (Rad Lab default)
 ```
 
-`calibrate()` computes `fieldFactor = (cpm / knownUsvH) / radlabSensitivity` and updates both `_fieldFactor` and `_sensitivity` atomically.
+`calibrate()` sets `_sensitivity = cpm / knownUsvH`, and where the tube has a Rad Lab baseline also `_fieldFactor = sensitivity / radlabSensitivity`, both atomically.
 
-Returns `false` if the reading is not yet valid, `knownUsvH ≤ 0`, confidence exceeds `maxConfidencePct`, or `TUBE_CUSTOM` is in use (`setFieldFactor()` also has no effect for `TUBE_CUSTOM`).
+For `TUBE_CUSTOM` there is no baseline and so no field factor — and none is wanted, because there the sensitivity *is* the setting. Calibration writes it and leaves the field factor at 1.0. Save and restore `getSensitivity()` / `setSensitivity()` for a custom tube, where a named tube saves the field factor.
+
+Returns `false` if the reading is not yet valid, `knownUsvH ≤ 0`, or confidence exceeds `maxConfidencePct`.
 
 ```cpp
 // Live calibration against a known reference:

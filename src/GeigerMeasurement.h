@@ -1012,6 +1012,16 @@ public:
      *   1. The current reading is valid (enough pulses for rate calculation)
      *   2. The 95% confidence interval is within maxConfidencePct
      *
+     * CUSTOM TUBES:
+     *   TUBE_CUSTOM has no Rad Lab baseline, so there is no field factor to
+     *   derive -- and none is needed, because for a custom tube the sensitivity
+     *   is the setting. Calibration writes it directly and leaves the field
+     *   factor at 1.0, which is what setFieldFactor() already does nothing to
+     *   change there.
+     *
+     *   Save and restore getSensitivity() / setSensitivity() for a custom tube,
+     *   where a named tube saves the field factor.
+     *
      * @param knownUsvH       Known dose rate of the reference source [µSv/h]
      * @param maxConfidencePct Maximum acceptable 95% CI [%] (default: 20%)
      * @return true if calibration was performed, false if conditions not met.
@@ -1028,13 +1038,17 @@ public:
         // session provided the software is used correctly on the user’s end.
         GEIGER_ENTER_CRITICAL();
         float radlabSensitivity = _radlabSensitivity;
+        float newSens = r.cpm / knownUsvH;
+        _sensitivity = newSens;
+        // Only where there is a baseline to divide by. A custom tube has none,
+        // and needs none: the sensitivity written above is the whole result,
+        // and expressing it as a ratio to something that does not exist would
+        // be the only thing missing.
         if (!isnan(radlabSensitivity)) {
-            float newSens = r.cpm / knownUsvH;
-            _sensitivity = newSens;
             _fieldFactor = newSens / radlabSensitivity;
         }
         GEIGER_EXIT_CRITICAL();
-        return (!isnan(radlabSensitivity));
+        return true;
     }
 
     // =========================================================================
