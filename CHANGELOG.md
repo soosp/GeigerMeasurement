@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The ISR-shared counters are updated without compound or chained operations on
+  `volatile`. C++20 deprecates both — a compound operation because its
+  read-modify-write order is unspecified, a chained assignment because it reads
+  back the value of a volatile store — and ESP32 Arduino core 3.x compiles at a
+  standard that warns about them.
+
+  Behaviour and generated code are unchanged; `_count++` becomes a read, an add
+  and a write, and `_head = _count = 0` becomes two statements.
+
 ## [1.1.0] - 2026-09-20
 
 ### Added

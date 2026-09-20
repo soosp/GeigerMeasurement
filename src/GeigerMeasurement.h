@@ -432,7 +432,15 @@ public:
             if (interval < _minIntervalUs) _minIntervalUs = interval;
         }
         _head = (_head + 1) & GeigerConfig::PULSE_BUFFER_MASK;
-        if (_count < GeigerConfig::PULSE_BUFFER_SIZE) _count++;
+        // Read, add, write back rather than ++. C++20 deprecates a compound
+        // operation on a volatile because its read-modify-write order is
+        // unspecified, and ESP32 Arduino core 3.x compiles at a standard that
+        // warns about it. The separate statements say exactly what happens and
+        // generate the same code.
+        if (_count < GeigerConfig::PULSE_BUFFER_SIZE) {
+            uint32_t n = _count;
+            _count = n + 1;
+        }
         _totalPulses    = _addClamped(_totalPulses, 1);
         _lifetimePulses = _addClamped(_lifetimePulses, 1);
         GEIGER_EXIT_CRITICAL_ISR();
@@ -656,7 +664,11 @@ public:
      */
     void reset() {
         GEIGER_ENTER_CRITICAL();
-        _head = _count = _totalPulses = 0;
+        // Separate assignments: a chained one reads back the value of each
+        // volatile store, which C++20 also deprecates.
+        _head        = 0;
+        _count       = 0;
+        _totalPulses = 0;
         _lastPulseMs = 0;
         _dtCarry = 0.0f;
         GEIGER_EXIT_CRITICAL();
@@ -761,7 +773,8 @@ public:
     void setMode(AveragingMode m) {
         GEIGER_ENTER_CRITICAL();
         _mode = m;
-        _head = _count = 0;
+        _head  = 0;
+        _count = 0;
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -825,7 +838,8 @@ public:
     void setAdaptivePulses(float n) {
         GEIGER_ENTER_CRITICAL();
         _adaptivePulses = n;
-        _head = _count = 0;
+        _head  = 0;
+        _count = 0;
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -833,7 +847,8 @@ public:
     void setAdaptiveMaxWindow(float s) {
         GEIGER_ENTER_CRITICAL();
         _adaptiveMaxWindow = s;
-        _head = _count = 0;
+        _head  = 0;
+        _count = 0;
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -841,7 +856,8 @@ public:
     void setAdaptiveMinWindow(float s) {
         GEIGER_ENTER_CRITICAL();
         _adaptiveMinWindow = s;
-        _head = _count = 0;
+        _head  = 0;
+        _count = 0;
         GEIGER_EXIT_CRITICAL();
     }
 
