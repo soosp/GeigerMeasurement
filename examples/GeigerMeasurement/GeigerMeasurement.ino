@@ -38,9 +38,10 @@ void setup() {
     pinMode(GEIGER_PIN, INPUT);
     // ISR detects the falling edge of pulse from the GM circuit.
     attachInterrupt(digitalPinToInterrupt(GEIGER_PIN), geigerISR, FALLING);
-    // Setting fieldFactor for the SBM-20 tube. See the documentation for
-    // details.
-    geiger.setFieldFactor(1.611f);
+    // Empirical field factor for the SBM-20, measured at mid-plateau against a
+    // reference instrument. A starting point, not a substitute for calibrating
+    // your own tube and board — see the documentation.
+    geiger.setFieldFactor(1.558f);
     Serial.println("Geiger monitor starting...");
 }
 

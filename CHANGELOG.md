@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The empirical field factors are replaced by a 214-hour four-tube run: J305
+  1.030, M4011 1.279, SBM-20 1.558, and 122.2 CPM/(µSv/h) for the 90 mm J305.
+  All four agree with the reference to within 1%, which is their counting
+  precision.
+
+  The previous figures were measured with three of the supplies a few volts
+  above the plateau knee. Moving them to mid-plateau changed those factors by 3%
+  and one by 10.6%, so the operating point is now stated alongside the numbers —
+  along with the board and the dead-time setting, since a field factor absorbs
+  all three.
+
 ### Fixed
 
 - `calibrate()` now works for `TUBE_CUSTOM`. It previously skipped its entire

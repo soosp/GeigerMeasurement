@@ -163,10 +163,10 @@ enum GeigerTube {
 
 |Enum|Tube|Cs-137 sensitivity (Rad Lab)|BG sensitivity (Rad Lab)|Empirical fieldFactor for BG|
 |---|---|---|---|---|
-|`TUBE_J305`|J305 107 mm|135.2 CPM/(µSv/h)|180.5 CPM/(µSv/h)|1.069|
-|`TUBE_M4011` / `TUBE_J321`|M4011 / J321|108.3 CPM/(µSv/h)|144.6 CPM/(µSv/h)|1.269|
+|`TUBE_J305`|J305 107 mm|135.2 CPM/(µSv/h)|180.5 CPM/(µSv/h)|1.030|
+|`TUBE_M4011` / `TUBE_J321`|M4011 / J321|108.3 CPM/(µSv/h)|144.6 CPM/(µSv/h)|1.279|
 |`TUBE_HH614`|HH614|30.2 CPM/(µSv/h)|40.2 CPM/(µSv/h)|— (not measured)|
-|`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.611|
+|`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.558|
 |`TUBE_SI3BG`|SI-3BG|3.3 CPM/(µSv/h)|3.6 CPM/(µSv/h)|— (not measured)|
 |`TUBE_LND7317`|LND 7317|252.6 CPM/(µSv/h)|289.0 CPM/(µSv/h)|— (not measured)|
 |`TUBE_CUSTOM`|any|—|—|use `setSensitivity()`|
@@ -595,20 +595,21 @@ Returns `false` if the reading is not yet valid, `knownUsvH ≤ 0`, or confidenc
 ```cpp
 // Live calibration against a known reference:
 while (!geiger.calibrate(0.116f, 15.0f)) { delay(1000); }
-float ff = geiger.getFieldFactor();  // e.g. 1.269 — save to EEPROM/flash
+float ff = geiger.getFieldFactor();  // e.g. 1.279 — save to EEPROM/flash
 
 // Restore on next boot without re-calibrating:
-geiger.setFieldFactor(1.269f);
+geiger.setFieldFactor(1.279f);
 
-// Empirical values from parallel background measurements (Pannonhalma, 2026):
-// TUBE_M4011:  setFieldFactor(1.269f)
-// TUBE_SBM20:  setFieldFactor(1.611f)
-// TUBE_J305:   setFieldFactor(1.069f)  // 107 mm variant
+// Empirical values from parallel background measurements (Pannonhalma, 2026),
+// measured at mid-plateau with dead-time compensation off:
+// TUBE_M4011:  setFieldFactor(1.279f)
+// TUBE_SBM20:  setFieldFactor(1.558f)
+// TUBE_J305:   setFieldFactor(1.030f)  // 107 mm variant
 // See Empirical Field Factors section for measurement details.
 
 // Custom tube (no Rad Lab baseline):
 GeigerMeasurement geiger(TUBE_CUSTOM, SOURCE_BACKGROUND);
-geiger.setSensitivity(130.1f);  // J305 90 mm: empirical value from 43.5h measurement
+geiger.setSensitivity(122.2f);  // J305 90 mm: empirical value from a 214 h measurement
 ```
 
 ---
@@ -680,33 +681,56 @@ Use `setFieldFactor()` to apply these corrections, or `calibrate()` to determine
 **Conditions:**
 
 - Location: Pannonhalma, Hungary — indoor, ~1 m above floor
-- Hardware: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, ~380–400V HV, running in parallel
+- Hardware: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, running in parallel
+- Operating point: each supply set to mid-plateau, 420–426 V
+- Dead-time compensation: off
 - Source setting: `SOURCE_BACKGROUND`
-- Duration: ~43.5 hours parallel run (lifetime average, Poisson error ~1%)
-- Reference: BOSEAN FS-5000 with J321 tube, RadPro 3.1.1 (factory calibration)
-  displaying ~16.6 CPM → 0.115 µSv/h, consistent with regional OMSZ/HM
+- Duration: 214 hours, undisturbed (lifetime average, Poisson error ~0.4%)
+- Reference: BOSEAN FS-5000 with J321 tube, RadPro 3.1.1 (factory calibration),
+  24.81 µSv over 213:42:46 → 0.1161 µSv/h, consistent with regional OMSZ/HM
   monitoring network data (~0.087–0.115 µSv/h in the Győr–Pápa region)
 
 **Results:**
 
-|Tube|CPM (measured)|fieldFactor|Notes|
-|---|--:|--:|---|
-|M4011|21.11|**1.269**||
-|SBM-20|19.66|**1.611**|Largest deviation — steel wall energy filtering(?)|
-|J305 107 mm|22.19|**1.069**|Close to Rad Lab prediction|
-|J305 90 mm|14.96|—|Use `setSensitivity(130.1f)` with `TUBE_CUSTOM`|
+|Tube|CPM (measured)|fieldFactor|vs. reference|±95%|
+|---|--:|--:|--:|--:|
+|J305 107 mm|21.7|**1.030**|+0.27%|0.37%|
+|M4011|21.5|**1.279**|+0.51%|0.37%|
+|SBM-20|20.2|**1.558**|+0.61%|0.39%|
+|J305 90 mm|14.3|—|−0.40%|0.46%|
+
+All four agree with the reference, and with each other, to within 1% — which is
+their counting precision. More time would not improve it: beyond this the
+reference's own accuracy is the limit. The 90 mm J305 uses
+`setSensitivity(122.2f)` with `TUBE_CUSTOM`.
 
 **Key ratios vs. Rad Lab predictions:**
 
 |Ratio|Measured|Rad Lab|Deviation|
 |---|--:|--:|--:|
-|M4011 / SBM-20|1.074|1.363|−21.2%|
-|J305 107 mm / SBM-20|1.129|1.701|−33.6%|
-|J305 107 mm / M4011|1.051|1.248|−15.8%|
+|M4011 / SBM-20|1.119|1.363|−17.9%|
+|J305 107 mm / SBM-20|1.125|1.701|−33.9%|
+|J305 107 mm / M4011|1.005|1.248|−19.5%|
+
+**Three qualifiers, and none of them is the tube.** A field factor absorbs
+everything between a count and the displayed number, and these measurements show
+how little of it is the glass:
+
+1. **Operating point.** An earlier run had three supplies a few volts above the
+   plateau knee. Moving them to mid-plateau changed those factors by 3%, and one
+   by 10.6%. Calibrating before the operating point is set measures the
+   operating point.
+2. **The board.** Two tubes on identical boards tracked each other to 0.4% over
+   nine days; the one on an earlier board revision — same resistors, same HV
+   section, different topology — did not.
+3. **Dead time off.** At background the compensation is 0.003–0.006%, so it
+   changes nothing here, but the figures were taken without it.
 
 > These are single-location measurements on individual tube samples.
 > Your values may differ due to tube-to-tube manufacturing tolerances,
 > HV supply accuracy, and local radiation field composition.
+> A far better starting point than 1.0, and no substitute for calibrating your
+> own tube-and-board pair.
 
 ---
 
