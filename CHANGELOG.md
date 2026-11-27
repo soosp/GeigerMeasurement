@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-27
+
 ### Fixed
 
 - The fixed modes read one count per window low. The rate was `(N − 1) / W`,
@@ -121,7 +123,8 @@ All notable changes to this project will be documented in this file.
 
 - First public release
 
-[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.1.1...HEAD
+[unreleased]: https://github.com/soosp/GeigerMeasurement/compare/1.1.2...HEAD
+[1.1.2]: https://github.com/soosp/GeigerMeasurement/compare/1.1.1...1.1.2
 [1.1.1]: https://github.com/soosp/GeigerMeasurement/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/soosp/GeigerMeasurement/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/soosp/GeigerMeasurement/compare/1.0.2...1.0.3
