@@ -268,7 +268,7 @@ Or in `platformio.ini`:
 build_flags = -DGEIGER_PULSE_BUFFER_SIZE=512
 ```
 
-The buffer holds timestamps of recent pulses. Larger buffers allow longer adaptive windows, at the cost of RAM.
+The buffer holds timestamps of recent pulses. Larger buffers allow longer adaptive windows, at the cost of RAM. A fixed window that holds more pulses than the buffer (above 256 per minute in `FIXED_60S` with the default size) is measured over the span the buffer does cover, so the rate does not stop at the buffer size; it gets noisier, because fewer pulses are averaged.
 
 ##### Default constants (`GeigerConfig` namespace)
 

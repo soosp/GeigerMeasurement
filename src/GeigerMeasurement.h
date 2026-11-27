@@ -55,7 +55,8 @@
  *   Special thanks to Gissio for the excellent open-source work.
  *
  * Algorithms taken or adapted from RadPro:
- *   - Instantaneous rate: (N-1) / T formula (pulses.c)
+ *   - Instantaneous rate: (N-1) / T formula for adaptive windows (pulses.c);
+ *     N / W for fixed windows, as RadPro 3.2 changed it (instantaneous.c)
  *   - High-rate correction: pulseCount > ticks case (pulses.c)
  *   - Dead-time compensation: non-paralyzable model, 10x cap (pulses.c)
  *   - Dead-time carry: integer accumulator for long averaging (pulses.c)
@@ -180,10 +181,14 @@
  *                       Better statistical accuracy at the cost of slower response.
  *
  * FIXED modes (sliding window):
- *   A fixed-duration window slides over the pulse timestamp buffer. The rate is
- *   computed from all pulses that fall within the window. With fewer than 2
- *   pulses in the window the rate is reported as 0 (not "invalid") — this is
- *   the RadPro behaviour for fixed modes.
+ *   A fixed-duration window slides over the pulse timestamp buffer, and the
+ *   rate is the number of pulses in it divided by its length, N / W — as in
+ *   RadPro 3.2. An empty window reads 0, valid. The window is shortened to the
+ *   history there is: after a reset() or a buffer clear (setMode() and the
+ *   adaptive setters) it grows from zero instead of counting the time before
+ *   as silence, and when more pulses fall in it than the buffer holds (above
+ *   PULSE_BUFFER_SIZE per window: 256 per minute with the default buffer) the
+ *   rate comes from the buffered pulses alone, (k − 1) / (now − oldest).
  *
  *   FIXED_10S:  10-second sliding window — responsive but noisy.
  *   FIXED_30S:  30-second sliding window — balanced.
@@ -382,6 +387,8 @@ public:
         , _lifetimePulses(0)
         , _lastPulseMs(0)
         , _minIntervalUs(UINT32_MAX)
+        , _clearedMs(0)
+        , _historyLong(false)
         , _dtCarry(0.0f)
     {}
 
@@ -466,11 +473,15 @@ public:
      *   On ESP32:   uses FreeRTOS taskENTER_CRITICAL() / taskEXIT_CRITICAL()
      *               which protects against both cores.
      *
-     * RATE CALCULATION (RadPro formula):
-     *   rate [CPS] = (N - 1) × 1000 / ticks
-     *   where ticks = window duration in milliseconds, N = pulse count in window.
-     *   Using (N-1) instead of N avoids the boundary bias: we measure the time
-     *   between the first and last pulse, which spans exactly (N-1) intervals.
+     * RATE CALCULATION:
+     *   Fixed modes:    rate [CPS] = N / W — the pulses in the window over its
+     *                   length, W cut to the history since the last buffer clear.
+     *   Adaptive modes: rate [CPS] = (N - 1) × 1000 / ticks, ticks = window in
+     *                   ms. The window runs from the N-th most recent pulse to
+     *                   now, a Gamma(N)-distributed time, of which (N - 1) / T
+     *                   is the unbiased rate estimate. A fixed window holding
+     *                   more pulses than the buffer is estimated the same way,
+     *                   over the span the buffer covers.
      *
      * HIGH-RATE CORRECTION (RadPro):
      *   When pulse count exceeds the millisecond tick count (>1000 CPS = 60 000 CPM),
@@ -501,6 +512,7 @@ public:
         float deadTimeWarnRatio = _deadTimeWarnRatio;
         uint32_t lastPulseMs = _lastPulseMs;
         uint32_t totalPulses = _totalPulses;
+        uint32_t clearedMs   = _clearedMs;
         uint32_t buf[GeigerConfig::PULSE_BUFFER_SIZE];
         for (uint32_t i = 0; i < GeigerConfig::PULSE_BUFFER_SIZE; i++)
             buf[i] = _timestamps[i];
@@ -532,6 +544,18 @@ public:
 
         // --- Determine averaging window duration ---
         float windowDurationUs = _windowDurationUs(head, count, buf, now);
+
+        // A fixed window reaches back no further than the last buffer clear:
+        // before it the buffer holds nothing, which is not the same as no
+        // pulses. The age is in ms (micros() wraps every 71 minutes), and once
+        // it has passed the longest fixed window the check is latched off, so
+        // millis() wrapping cannot bring it back.
+        if (fixedMode && !_historyLong) {
+            uint32_t ageMs = millis() - clearedMs;
+            if (ageMs >= 60000UL) _historyLong = true;
+            else windowDurationUs = min(windowDurationUs, (float)ageMs * 1000.0f);
+        }
+
         if (windowDurationUs <= 0.0f) {
             // Invalid reading, but tubeAlive and timestampMs are meaningful
             // regardless of valid and must be set on every return path.
@@ -543,19 +567,44 @@ public:
         // --- Count pulses within the window ---
         uint32_t windowPulses = _countInWindow(head, count, buf, now, windowDurationUs);
 
+        // More pulses in a fixed window than the buffer holds: the oldest of
+        // them have been overwritten, and counting what is left would cap the
+        // rate at PULSE_BUFFER_SIZE per window (255 CPM in FIXED_60S). The
+        // window becomes the span the buffer does cover, from its oldest pulse
+        // to now, and the rate is estimated as in the adaptive modes.
+        bool truncated = fixedMode &&
+                         count >= GeigerConfig::PULSE_BUFFER_SIZE &&
+                         windowPulses >= GeigerConfig::PULSE_BUFFER_SIZE;
+        if (truncated)
+            windowDurationUs = (float)(now - buf[head & GeigerConfig::PULSE_BUFFER_MASK]);
+
+        // Fixed mode, window not cut short: N / W, every pulse in the window
+        // counted. This is what a fixed window means, and it is unbiased; the
+        // (N − 1) of the other path belongs to a window that ends where a pulse
+        // count was reached, and here would read one count per window low —
+        // 1 CPM in FIXED_60S, 5% at a 20 CPM background. RadPro 3.2 made the
+        // same change. An empty window reads 0, valid.
+        if (fixedMode && !truncated) {
+            float windowSec = windowDurationUs * 1e-6f;
+            float rawCPS    = (float)windowPulses / windowSec;
+            float dtFactor;
+            float cpm = _applyDeadTime(rawCPS, rawCPS * 60.0f, dtFactor);
+            r.cpm                   = cpm;
+            r.uSvH                  = (sensitivity > 0.0f) ? (cpm / sensitivity) : NAN;
+            r.confidenceHalf        = _confidenceInterval(windowPulses) * 100.0f;
+            r.pulseCount            = windowPulses;
+            r.compensatedPulseCount = _applyDeadTimeCarry(windowPulses, dtFactor);
+            r.windowSec             = windowSec;
+            r.timestampMs           = millis();
+            r.valid                 = true;
+            r.saturated             = dtFactor >= (deadTimeMaxFactor * deadTimeWarnRatio);
+            r.tubeAlive             = _tubeAliveCheck(lastPulseMs);
+            r.counterSaturated      = (totalPulses == 0xFFFFFFFFUL);
+            return r;
+        }
+
         // Handle the case of fewer than 2 pulses within the window
         if (windowPulses < GeigerConfig::MIN_PULSES_FOR_RATE) {
-            if (fixedMode) {
-                // Fixed mode: report zero rate, still valid
-                r.cpm            = 0.0f;
-                r.uSvH           = 0.0f;
-                r.confidenceHalf = 269.0f;
-                r.windowSec      = windowDurationUs * 1e-6f;
-                r.timestampMs    = millis();
-                r.tubeAlive      = _tubeAliveCheck(lastPulseMs);
-                r.valid          = true;
-                return r;
-            }
             // Adaptive mode — not enough data in the window. Routine at
             // background rates, where fewer than two pulses often fall inside
             // a short adaptive window. valid stays false, but tubeAlive and
@@ -567,7 +616,10 @@ public:
             return r;
         }
 
-        // --- Instantaneous rate (RadPro formula) ---
+        // --- Instantaneous rate: adaptive modes and a truncated fixed window ---
+        // The window ends at now and starts at a pulse, so (N - 1) / W: the
+        // time back to the k-th most recent pulse is Gamma(k)-distributed, and
+        // (k - 1) / T is its unbiased rate estimate.
         // Convert window duration to millisecond ticks (RadPro uses ms internally).
         // rate = (N - 1) × 1000 / ticks  [CPS]
         //
@@ -668,6 +720,7 @@ public:
         // volatile store, which C++20 also deprecates.
         _head        = 0;
         _count       = 0;
+        _markCleared();
         _totalPulses = 0;
         _lastPulseMs = 0;
         _dtCarry = 0.0f;
@@ -775,6 +828,7 @@ public:
         _mode = m;
         _head  = 0;
         _count = 0;
+        _markCleared();
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -840,6 +894,7 @@ public:
         _adaptivePulses = n;
         _head  = 0;
         _count = 0;
+        _markCleared();
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -849,6 +904,7 @@ public:
         _adaptiveMaxWindow = s;
         _head  = 0;
         _count = 0;
+        _markCleared();
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -858,6 +914,7 @@ public:
         _adaptiveMinWindow = s;
         _head  = 0;
         _count = 0;
+        _markCleared();
         GEIGER_EXIT_CRITICAL();
     }
 
@@ -1170,6 +1227,10 @@ private:
                                        ///<   improving dead-time estimate across all sessions.
 
     // --- State (not ISR-shared) ---
+    uint32_t _clearedMs;     ///< millis() when the ring buffer was last cleared
+    bool     _historyLong;   ///< ≥ 60 s since then: no fixed window is cut short
+                             ///<   any more. Latched, so millis() wrapping after
+                             ///<   49 days cannot make the history look short.
     float _dtCarry;  ///< Dead-time compensation fractional carry (RadPro: deadTimeCompensationRemainder).
                      ///< Accumulates the fractional part of the compensated pulse count
                      ///< across calls, so long-term averages do not lose sub-integer counts.
@@ -1177,6 +1238,12 @@ private:
     // =========================================================================
     // PRIVATE HELPERS
     // =========================================================================
+
+    /// Called wherever the ring buffer is emptied, inside the critical section.
+    void _markCleared() {
+        _clearedMs   = millis();
+        _historyLong = false;
+    }
 
     // -------------------------------------------------------------------------
     // Window duration determination

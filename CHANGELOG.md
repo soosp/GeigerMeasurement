@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The fixed modes read one count per window low. The rate was `(N − 1) / W`,
+  the adaptive formula, where `(N − 1)` belongs to a window that ends at a pulse
+  count reached; a fixed window counts every pulse in it, so `N / W` — as
+  RadPro 3.2 has now changed it too. In `FIXED_60S` that was 1 CPM: 5% at a
+  20 CPM background, 8% at 13 CPM. An empty window still reads 0, valid; a
+  window with a single pulse now reads that pulse instead of 0.
+- The fixed modes stopped at the buffer size. With more pulses in the window than
+  `GEIGER_PULSE_BUFFER_SIZE`, the oldest had been overwritten and only the rest
+  were counted: `FIXED_60S` could not read above 255 CPM with the default
+  buffer, 1000 CPM read 75% low. Such a window is now measured over the span
+  the buffer covers, from its oldest pulse to now.
+- The fixed modes counted the time before a buffer clear as silence. After
+  `reset()`, `setMode()` or an adaptive setter the window now grows from zero,
+  so the first minute reads the rate instead of a ramp up to it (10 s after a
+  clear, `FIXED_60S` had read 82% low).
+
+  Adaptive modes are unchanged.
+
 ## [1.1.1]
 
 ### Fixed
