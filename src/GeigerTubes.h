@@ -303,79 +303,80 @@ inline float tubeSensitivity(GeigerTube tube) {
 //
 //   effective_sensitivity = radlab_sensitivity * fieldFactor
 //
-// MEASUREMENT CONDITIONS
+// MEASUREMENT CONDITIONS (the fifth of seven runs; README has all of it)
 //   Location:  Pannonhalma, Hungary (indoor, ~1m above floor)
-//   Duration:  214 hours, four tubes in parallel, undisturbed
+//   Duration:  203 hours, four tubes in parallel, undisturbed
 //   Reference: BOSEAN FS-5000 with J321 tube, RadPro 3.1.1 firmware
 //              (using Rad Lab Cs-137/background values)
-//              24.81 µSv over 213:42:46 → 0.1161 µSv/h
+//              23.47 µSv over 202:54:20 → 0.1157 µSv/h
 //              Consistent with regional background data (~0.087-0.115 µSv/h,
 //              OMSZ/HM monitoring network, Hungary. See
 //              https://www.katasztrofavedelem.hu/modules/hattersugarzas/aktualis_adatsor
 //              for details.)
-//   Hardware:  ESP8266 on CAJOE-derived boards, each supply set to mid-plateau
-//              (420-426 V), dead-time compensation off
+//   Hardware:  ESP8266 on CAJOE-derived boards, each in an IP65 ABS box,
+//              supply at mid-plateau (408-413 V at the anode), dead-time
+//              compensation off
 //   Software:  GeigerMeasurement library, SOURCE_BACKGROUND
 //
 // RESULTS
 //
-//   Tube        CPM (meas.)  fieldFactor  vs reference   +-95%
-//   ----------  -----------  -----------  ------------  ------
-//   J305 107 mm    21.7         1.030        +0.27%      0.37%
-//   M4011          21.5         1.279        +0.51%      0.37%
-//   SBM-20         20.2         1.558        +0.61%      0.39%
-//   J305 90 mm     14.3           —          -0.40%      0.46%
-//                                use setSensitivity(122.2f).
+//   Tube        CPM (meas.)  fieldFactor  sensitivity   +-95%
+//   ----------  -----------  -----------  -----------  ------
+//   J305 107 mm    21.38        1.024        184.8      0.38%
+//   M4011          20.80        1.243        179.8      0.39%
+//   SBM-20         17.61        1.435        152.3      0.42%
+//   J305 80 mm     12.97          —          112.1      0.49%
+//                                use TUBE_CUSTOM and setSensitivity(112.1f).
 //
-//   All four agree to within 1% of the reference and of each other, which is
-//   their counting precision. More time would not improve it: past this point
-//   the reference's own accuracy is the limit.
+//   Two later runs (530 h, 309 h) repeated each tube to 0.4%, the second after
+//   the operating points had moved by up to ten volts.
 //
-// THREE QUALIFIERS, AND NONE OF THEM IS THE TUBE
+// FIVE QUALIFIERS, AND NONE OF THEM IS THE TUBE
 //   These are not "the correction for this tube". A field factor absorbs
-//   everything between a count and the displayed number, and the measurements
-//   above show how much of it is not the glass:
+//   everything between a count and the displayed number:
 //
-//   1. OPERATING POINT. An earlier run had three of the supplies a few volts
-//      above the plateau knee, where efficiency is at its most voltage-
-//      sensitive. Moving them to mid-plateau changed their factors by 3%, and
-//      one by 10.6%. Calibrating before the operating point is set measures the
-//      operating point.
-//   2. THE BOARD. Two tubes on identical boards tracked each other to 0.4% over
+//   1. THE ENCLOSURE. On open boards the same tubes needed 1.030, 1.279, 1.558
+//      and 122.2. The box stops the beta part of the background, and the loss
+//      follows the wall: J305 107 mm -0.6%, M4011 -2.8%, SBM-20 -7.9%,
+//      J305 80 mm -8.3%. Calibrate the tube as it will be used.
+//   2. OPERATING POINT. A few volts above the plateau knee, moving to
+//      mid-plateau changed factors by 3% and one by 10.6%. On the plateau, ten
+//      volts moved none by more than 0.4%. Get onto the plateau first.
+//   3. THE BOARD. Two tubes on identical boards tracked each other to 0.4% over
 //      nine days. The one tube on an earlier board revision — same resistors,
 //      same HV section, different topology — did not.
-//   3. DEAD TIME OFF. At background the compensation is 0.003-0.006%, so this
+//   4. THE FIELD. In the heating season three of the tubes read 1.3-1.7% high
+//      with these factors, over 840 hours, while the 107 mm J305 stayed on the
+//      reference: the background's composition changed, and tubes of different
+//      energy response follow it differently.
+//   5. DEAD TIME OFF. At background the compensation is 0.003-0.006%, so this
 //      changes nothing here, but the figures were measured without it.
 //
 //   A far better starting point than 1.0, and not a substitute for calibrating
 //   a specific tube-and-board pair.
 //
 // INTERPRETATION
-//   - SBM-20 still deviates most from Rad Lab (1.56x), consistent with its
-//     steel wall responding to the low-energy background differently than the
-//     simulation assumes.
-//   - Over nine quiet days the SBM-20's day-to-day scatter against the other
-//     tubes was 2.2x what counting statistics alone predict, while the two
-//     glass tubes matched prediction. Suggestive of a real difference in what
-//     the tubes respond to, and no more than suggestive: no spectrum was
-//     measured, and a GM tube cannot measure one.
-//   - J305 90 mm: not listed in the RadPro table, and not a shorter J305 — it
-//     counts 34% below an M4011 of the same envelope, where the 1 mm diameter
-//     difference accounts for at most half. Use TUBE_CUSTOM.
+//   - SBM-20 still deviates most from Rad Lab (1.44x enclosed, 1.56x open),
+//     consistent with its steel wall responding to the low-energy background
+//     differently than the simulation assumes.
+//   - J305 80 mm: not listed in the RadPro table, and not a shorter J305 —
+//     a different product under the same name, 80 mm of useful length against
+//     107, smaller in diameter, and thinner-walled on the evidence of the
+//     enclosure. Use TUBE_CUSTOM. (Earlier versions called it the 90 mm J305.)
 //   - The FS-5000 reference itself uses Rad Lab values, so these field factors
 //     represent real-world vs. simulation deviation, not absolute calibration.
 //
 // USAGE EXAMPLE
-//   // Apply the empirical field factor for SBM-20 background measurements:
-//   geiger.setFieldFactor(1.558f);   // measured 2026, Pannonhalma (214 h)
+//   // Apply the empirical field factor for an enclosed SBM-20:
+//   geiger.setFieldFactor(1.435f);   // measured 2026, Pannonhalma (203 h)
 //
 //   // Or calibrate live against a known reference:
-//   while (!geiger.calibrate(0.1161f, 15.0f)) { delay(1000); }
+//   while (!geiger.calibrate(0.1157f, 15.0f)) { delay(1000); }
 //   float ff = geiger.getFieldFactor();  // save to EEPROM/Flash for next boot
 //
-//   // J305 90 mm — Use TUBE_CUSTOM with measured sensitivity:
+//   // J305 80 mm — Use TUBE_CUSTOM with measured sensitivity:
 //   GeigerMeasurement geiger(TUBE_CUSTOM, SOURCE_BACKGROUND);
-//   geiger.setSensitivity(122.2f);   // empirical: 14.3 CPM / 0.1161 µSv/h, 214 h
+//   geiger.setSensitivity(112.1f);   // empirical: 12.97 CPM / 0.1157 µSv/h, 203 h
 
 // =============================================================================
 // OPERATING DATA — plateau, voltage limits, dead time

@@ -163,15 +163,15 @@ enum GeigerTube {
 
 |Enum|Tube|Cs-137 sensitivity (Rad Lab)|BG sensitivity (Rad Lab)|Empirical fieldFactor for BG|
 |---|---|---|---|---|
-|`TUBE_J305`|J305 107 mm|135.2 CPM/(µSv/h)|180.5 CPM/(µSv/h)|1.030|
-|`TUBE_M4011` / `TUBE_J321`|M4011 / J321|108.3 CPM/(µSv/h)|144.6 CPM/(µSv/h)|1.279|
+|`TUBE_J305`|J305 107 mm|135.2 CPM/(µSv/h)|180.5 CPM/(µSv/h)|1.024|
+|`TUBE_M4011` / `TUBE_J321`|M4011 / J321|108.3 CPM/(µSv/h)|144.6 CPM/(µSv/h)|1.243|
 |`TUBE_HH614`|HH614|30.2 CPM/(µSv/h)|40.2 CPM/(µSv/h)|— (not measured)|
-|`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.558|
+|`TUBE_SBM20`|SBM-20|106.1 CPM/(µSv/h)|106.1 CPM/(µSv/h)|1.435|
 |`TUBE_SI3BG`|SI-3BG|3.3 CPM/(µSv/h)|3.6 CPM/(µSv/h)|— (not measured)|
 |`TUBE_LND7317`|LND 7317|252.6 CPM/(µSv/h)|289.0 CPM/(µSv/h)|— (not measured)|
 |`TUBE_CUSTOM`|any|—|—|use `setSensitivity()`|
 
-Cs-137 and background (BG) sensitivities are Rad Lab simulation values. Empirical field factors are measured — see [Empirical Field Factors](#empirical-field-factors) for details.
+Cs-137 and background (BG) sensitivities are Rad Lab simulation values. Empirical field factors are measured, with the tubes in enclosures — see [Empirical Field Factors](#empirical-field-factors) for details, and for the open-board values.
 
 `TUBE_CUSTOM` has no Rad Lab baseline: `tubeSourceSensitivity()` returns NaN, and `setFieldFactor()` has no effect. Use `setSensitivity()` to set the sensitivity directly.
 
@@ -595,21 +595,21 @@ Returns `false` if the reading is not yet valid, `knownUsvH ≤ 0`, or confidenc
 ```cpp
 // Live calibration against a known reference:
 while (!geiger.calibrate(0.116f, 15.0f)) { delay(1000); }
-float ff = geiger.getFieldFactor();  // e.g. 1.279 — save to EEPROM/flash
+float ff = geiger.getFieldFactor();  // e.g. 1.243 — save to EEPROM/flash
 
 // Restore on next boot without re-calibrating:
-geiger.setFieldFactor(1.279f);
+geiger.setFieldFactor(1.243f);
 
 // Empirical values from parallel background measurements (Pannonhalma, 2026),
-// measured at mid-plateau with dead-time compensation off:
-// TUBE_M4011:  setFieldFactor(1.279f)
-// TUBE_SBM20:  setFieldFactor(1.558f)
-// TUBE_J305:   setFieldFactor(1.030f)  // 107 mm variant
+// tubes in enclosures, mid-plateau, dead-time compensation off:
+// TUBE_M4011:  setFieldFactor(1.243f)
+// TUBE_SBM20:  setFieldFactor(1.435f)
+// TUBE_J305:   setFieldFactor(1.024f)  // 107 mm variant
 // See Empirical Field Factors section for measurement details.
 
 // Custom tube (no Rad Lab baseline):
 GeigerMeasurement geiger(TUBE_CUSTOM, SOURCE_BACKGROUND);
-geiger.setSensitivity(122.2f);  // J305 90 mm: empirical value from a 214 h measurement
+geiger.setSensitivity(112.1f);  // J305 80 mm, enclosed: empirical, 203 h
 ```
 
 ---
@@ -698,57 +698,105 @@ Note the spread: the plateau runs 350–475 V for an SBM-20 and 475–675 V for 
 
 ![Measurement setup: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, running in parallel — BOSEAN FS-5000 as reference](assets/measurement_setup.jpg)
 
+Seven runs in 2026, the same four tubes side by side.
+The figures below are from the fifth, the first with the boards in enclosures;
+the runs after it repeated them.
+
 **Conditions:**
 
 - Location: Pannonhalma, Hungary — indoor, ~1 m above floor
 - Hardware: four custom boards built under the principles of CAJOE module, with NodeMCU, equipped with different GM tubes, running in parallel
-- Operating point: each supply set to mid-plateau, 420–426 V
+- Enclosure: each board in an IP65 ABS box, about 260 mg/cm² of wall
+- Operating point: mid-plateau, 408–413 V (measured at the anode; see below)
 - Dead-time compensation: off
 - Source setting: `SOURCE_BACKGROUND`
-- Duration: 214 hours, undisturbed (lifetime average, Poisson error ~0.4%)
+- Duration: 203 hours, undisturbed
 - Reference: BOSEAN FS-5000 with J321 tube, RadPro 3.1.1 (factory calibration),
-  24.81 µSv over 213:42:46 → 0.1161 µSv/h, consistent with regional OMSZ/HM
+  23.47 µSv over 202:54:20 → 0.1157 µSv/h, consistent with regional OMSZ/HM
   monitoring network data (~0.087–0.115 µSv/h in the Győr–Pápa region)
 
 **Results:**
 
-|Tube|CPM (measured)|fieldFactor|vs. reference|±95%|
+|Tube|CPM (measured)|fieldFactor|Sensitivity|±95%|
 |---|--:|--:|--:|--:|
-|J305 107 mm|21.7|**1.030**|+0.27%|0.37%|
-|M4011|21.5|**1.279**|+0.51%|0.37%|
-|SBM-20|20.2|**1.558**|+0.61%|0.39%|
-|J305 90 mm|14.3|—|−0.40%|0.46%|
+|J305 107 mm|21.38|**1.024**|184.8 CPM/(µSv/h)|0.38%|
+|M4011|20.80|**1.243**|179.8 CPM/(µSv/h)|0.39%|
+|SBM-20|17.61|**1.435**|152.3 CPM/(µSv/h)|0.42%|
+|J305 80 mm|12.97|—|112.1 CPM/(µSv/h)|0.49%|
 
-All four agree with the reference, and with each other, to within 1% — which is
-their counting precision. More time would not improve it: beyond this the
-reference's own accuracy is the limit. The 90 mm J305 uses
-`setSensitivity(122.2f)` with `TUBE_CUSTOM`.
+The 80 mm J305 uses `setSensitivity(112.1f)` with `TUBE_CUSTOM` (see below).
+
+**Repeated.** Two later runs, 530 and 309 hours, measured each tube's
+sensitivity against the same reference again, the second after every operating
+point had been reset by up to ten volts:
+
+|Tube|Fifth (set)|Sixth|Seventh|
+|---|--:|--:|--:|
+|J305 107 mm|184.8|185.6|184.8|
+|M4011|179.8|182.3|182.8|
+|SBM-20|152.3|154.4|154.6|
+|J305 80 mm|112.1|113.3|113.5|
+
+Each tube repeats itself to 0.4% between the sixth and seventh runs. The
+1.3–1.7% that three of them moved from the fifth is the season, not the tubes:
+see qualifier 4.
 
 **Key ratios vs. Rad Lab predictions:**
 
 |Ratio|Measured|Rad Lab|Deviation|
 |---|--:|--:|--:|
-|M4011 / SBM-20|1.119|1.363|−17.9%|
-|J305 107 mm / SBM-20|1.125|1.701|−33.9%|
-|J305 107 mm / M4011|1.005|1.248|−19.5%|
+|M4011 / SBM-20|1.181|1.363|−13.4%|
+|J305 107 mm / SBM-20|1.213|1.701|−28.7%|
+|J305 107 mm / M4011|1.028|1.248|−17.7%|
 
-**Three qualifiers, and none of them is the tube.** A field factor absorbs
+**Five qualifiers, and none of them is the tube.** A field factor absorbs
 everything between a count and the displayed number, and these measurements show
 how little of it is the glass:
 
-1. **Operating point.** An earlier run had three supplies a few volts above the
-   plateau knee. Moving them to mid-plateau changed those factors by 3%, and one
-   by 10.6%. Calibrating before the operating point is set measures the
-   operating point.
-2. **The board.** Two tubes on identical boards tracked each other to 0.4% over
+1. **The enclosure.** The same four tubes in the open, a run earlier, needed
+   1.030, 1.279 and 1.558, and 122.2 for the 80 mm J305. The box took away what
+   arrives as beta, and how much that is depends on the wall:
+
+   |Tube|Loss in the box|Wall|
+   |---|--:|---|
+   |J305 107 mm|−0.6%|thick glass|
+   |M4011|−2.8%|glass|
+   |SBM-20|−7.9%|40 mg/cm² steel|
+   |J305 80 mm|−8.3%|thinner glass, smaller diameter|
+
+   Calibrate the tube the way it will be used: in its box, or open.
+2. **Operating point — at the knee, not on the plateau.** An earlier run had
+   three supplies a few volts above the plateau knee; moving them to
+   mid-plateau changed those factors by 3%, and one by 10.6%. On the plateau it
+   is a different matter: the seventh run moved the operating points by up to
+   ten volts, the M4011 by the most, and no sensitivity moved by more than
+   0.4%. Set the supply into the plateau first, then calibrate; where on the
+   plateau matters far less.
+3. **The board.** Two tubes on identical boards tracked each other to 0.4% over
    nine days; the one on an earlier board revision — same resistors, same HV
    section, different topology — did not.
-3. **Dead time off.** At background the compensation is 0.003–0.006%, so it
+4. **The field.** The sixth and seventh runs fell in the heating season. The
+   107 mm J305 stayed on the reference; the other three read 1.3–1.7% high with
+   the factors above, consistently over 840 hours. That is the composition of
+   the background changing, which tubes of different energy response follow
+   differently: a factor set in one season carries about 1.5% into the other.
+5. **Dead time off.** At background the compensation is 0.003–0.006%, so it
    changes nothing here, but the figures were taken without it.
+
+**The anode voltages** were first recorded as 420–426 V, read through the
+boards' own dividers on an uncalibrated ESP8266 ADC; measured with a meter they
+were 3% lower. The datasheet plateau is what matters, and a supply reading
+should be checked once against a meter before a plateau is trusted to it.
+
+**Two tubes are marked J305.** One has 107 mm of useful length, the other 80 mm
+and a smaller diameter, and the enclosure shows their walls differ too. They are
+different products under one name; `TUBE_J305` is the 107 mm one, and the 80 mm
+one needs `TUBE_CUSTOM`. (Earlier versions of this page called it the 90 mm
+J305.)
 
 > These are single-location measurements on individual tube samples.
 > Your values may differ due to tube-to-tube manufacturing tolerances,
-> HV supply accuracy, and local radiation field composition.
+> HV supply accuracy, enclosure and local radiation field composition.
 > A far better starting point than 1.0, and no substitute for calibrating your
 > own tube-and-board pair.
 

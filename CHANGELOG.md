@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The empirical field factors are now the enclosed ones, from a 203-hour run
+  with each board in an IP65 box: J305 107 mm 1.024, M4011 1.243, SBM-20 1.435,
+  and 112.1 CPM/(µSv/h) for the 80 mm J305 (`TUBE_CUSTOM`). The open-board
+  figures (1.030, 1.279, 1.558, 122.2) stay in the README for comparison. The
+  examples use the enclosed SBM-20 value.
+- *Empirical Field Factors* rewritten from seven runs instead of one. New: the
+  enclosure as a qualifier — the box stops the beta part of the background, a
+  loss of 0.6% to 8.3% depending on the wall; the operating point split into
+  the knee, where a few volts moved factors by 3–10.6%, and the plateau, where
+  ten volts moved none by more than 0.4%; the season, which moved three tubes
+  by 1.3–1.7% against the fourth; and two repeat runs, each tube within 0.4%.
+- Corrected: the anode voltages were 408–413 V at the anode, not the 420–426 V
+  an uncalibrated ADC had reported; and the short J305 is 80 mm of useful
+  length, not "90 mm".
+
 ## [1.1.2] - 2026-11-27
 
 ### Fixed
